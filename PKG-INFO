@@ -1,0 +1,11 @@
+Metadata-Version: 1.0
+Name: pyDes
+Version: 1.1
+Summary: Pure python implementation of DES and TRIPLE DES encryption algorithm
+Home-page: http://twhiteman.netfirms.com/des.html
+Author: Todd Whiteman
+Author-email: twhiteman@users.sourceforge.net
+License: UNKNOWN
+Description: UNKNOWN
+Keywords: DES,TRIPLE-DES,ENCRYPTION,ALGORITHM,SECURITY
+Platform: All

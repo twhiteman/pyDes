@@ -1,0 +1,15 @@
+** 7 May 2003 **
+ Code: pyDes.des and pyDes.triple_des now have an extra optional argument for
+ 	the encrypt and decrypt methods. This is for the padding character and
+ 	immediately follows the data field.
+ Code: Added error checking to the testing procedures in __fulltest__()
+ 
+** 5 May 2003 **
+ Doc:  Modified comments in Readme.txt and in pyDes.py header
+
+ Code: Changed Triple DES method to DES-EDE3 or DES-EDE2, depending on key size
+ Code: Optimized code by replacing inner for loops with map (now twice as fast)
+ Code: Changed all permutation tables to contain indexed locations instead of
+ 	byte offset locations
+ Code: Removed debugging line "Len of data: 1.0000"
+ Code: Included __filetest__() testing procedure
