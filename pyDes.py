@@ -3,9 +3,8 @@
 #############################################################################
 
 # Author:   Todd Whiteman
-# Date:     7th May, 2003
-# Verion:   1.1
-# Email:    twhiteman@users.sourceforge.net
+# Date:     12th September, 2005
+# Verion:   1.2
 # Homepage: http://twhiteman.netfirms.com/des.html
 #
 # This algorithm is a pure python implementation of the DES algorithm.
@@ -19,6 +18,7 @@
 # implementation methods used.
 #
 # Thanks to David Broadwell for ideas, comments and suggestions.
+# Thanks to Mario Wolff for pointing out and debugging some triple des CBC errors.
 #
 """A pure python implementation of the DES and TRIPLE DES encryption algorithms
 
@@ -547,8 +547,12 @@ class triple_des:
 				self.key_size = 16
 			else:
 				raise ValueError("Invalid triple DES key size. Key must be either 16 or 24 bytes long")
-		if self.getMode() == CBC and (not self.getIV() or len(self.getIV()) != self.block_size):
-			raise ValueError("Invalid IV, must be 16 bytes in length") ## TODO: Check this
+		if self.getMode() == CBC:
+			if not self.getIV():
+				# Use the first 8 bytes of the key
+				self.setIV(key[:self.block_size])
+			if len(self.getIV()) != self.block_size:
+				raise ValueError("Invalid IV, must be 8 bytes in length")
 		self.__key1 = des(key[:8], self.getMode(), self.getIV())
 		self.__key2 = des(key[8:16], self.getMode(), self.getIV())
 		if self.key_size == 16:
@@ -567,7 +571,7 @@ class triple_des:
 
 	def getIV(self):
 		"""getIV() -> string"""
-		self.__iv
+		return self.__iv
 
 	def setIV(self, IV):
 		"""Will set the Initial Value, used in conjunction with CBC mode"""
@@ -585,9 +589,26 @@ class triple_des:
 		data will then be padded to a multiple of 8 bytes with this
 		pad character.
 		"""
-		data = self.__key1.encrypt(data, pad)
-		data = self.__key2.decrypt(data)
-		return self.__key3.encrypt(data)
+		if self.getMode() == CBC:
+			self.__key1.setIV(self.getIV())
+			self.__key2.setIV(self.getIV())
+			self.__key3.setIV(self.getIV())
+			i = 0
+			result = []
+			while i < len(data):
+				block = self.__key1.encrypt(data[i:i+8], pad)
+				block = self.__key2.decrypt(block)
+				block = self.__key3.encrypt(block)
+				self.__key1.setIV(block)
+				self.__key2.setIV(block)
+				self.__key3.setIV(block)
+				result.append(block)
+				i += 8
+			return ''.join(result)
+		else:
+			data = self.__key1.encrypt(data, pad)
+			data = self.__key2.decrypt(data)
+			return self.__key3.encrypt(data)
 
 	def decrypt(self, data, pad=''):
 		"""decrypt(data, [pad]) -> string
@@ -601,9 +622,27 @@ class triple_des:
 		removed from the end of the string. This pad removal only occurs on the
 		last 8 bytes of the data (last data block).
 		"""
-		data = self.__key3.decrypt(data)
-		data = self.__key2.encrypt(data)
-		return self.__key1.decrypt(data, pad)
+		if self.getMode() == CBC:
+			self.__key1.setIV(self.getIV())
+			self.__key2.setIV(self.getIV())
+			self.__key3.setIV(self.getIV())
+			i = 0
+			result = []
+			while i < len(data):
+				iv = data[i:i+8]
+				block = self.__key3.decrypt(iv)
+				block = self.__key2.encrypt(block)
+				block = self.__key1.decrypt(block, pad)
+				self.__key1.setIV(iv)
+				self.__key2.setIV(iv)
+				self.__key3.setIV(iv)
+				result.append(block)
+				i += 8
+			return ''.join(result)
+		else:
+			data = self.__key3.decrypt(data)
+			data = self.__key2.encrypt(data)
+			return self.__key1.decrypt(data, pad)
 
 
 #############################################################################
@@ -720,6 +759,16 @@ def __fulltest__():
 	d = k.encrypt(unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080"))
 	if k.decrypt(d) != unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080"):
 		print "Test 6 Error: Unencypted data block does not match start data"
+
+	k = triple_des("MyDesKey\r\n\tABC\r\n0987*54B", CBC, "12341234")
+	d = k.encrypt(unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080"))
+	if k.decrypt(d) != unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080"):
+		print "Test 7 Error: Triple DES CBC failed."
+
+	k = triple_des("MyDesKey\r\n\tABC\r\n0987*54B", CBC, "12341234")
+	d = k.encrypt(unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDC"), '.')
+	if k.decrypt(d, '.') != unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDC"):
+		print "Test 8 Error: Triple DES CBC with padding failed."
 
 def __filetest__():
 	from time import time

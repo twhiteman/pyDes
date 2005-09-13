@@ -3,9 +3,8 @@
 #############################################################################
 
 Author:   Todd Whiteman
-Date:     7th May, 2003
-Verion:   1.1
-Email:    twhiteman@users.sourceforge.net
+Date:     12th September, 2005
+Verion:   1.2
 Homepage: http://twhiteman.netfirms.com/des.html
 
 This algorithm is a pure python implementation of the DES algorithm.
@@ -45,6 +44,7 @@ The first/third key will be bytes 1 to 8 and the second key bytes 9 to 16.
 #############################################################################
 Thanks go to:
  - David Broadwell:	Ideas, comments and suggestions
+ - Mario Wolff:		Finding and debugging triple des CBC errors.
 
 
 #############################################################################
