@@ -1,0 +1,158 @@
+<html>
+    <head>
+    	<meta http-equiv="content-type" content="text/html;charset=iso-8859-1">
+		<meta name="generator" content="des python encryption triple-des algorithm">
+    	<title>pyDes - Pure Python DES encryption algorithm</title>
+        <link href="main.css" rel="styleSheet" type="text/css">
+	</head>
+
+        <!-- Start of the body stuff -->
+	<body bgcolor="#eee3fe">
+    	<table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="white" summary="Page layout">
+			<tr bgcolor="#eee3fe">
+				<td align="center">
+              		<h1>&nbsp;</h1>
+    				<h1>pyDES</h1>
+					<table border="0" cellpadding="10" cellspacing="10" >
+            			<tr bgcolor="#eee3fe" valign="top">
+            				<td>
+              					<img src="encryption.gif" width="160" alt="Encryption GIF"><br>
+              				</td>
+              				<td>
+<table>
+    <tr><td><b>Author:</b></td><td><a href="mailto:twhiteman@users.sourceforge.net">Todd Whiteman</a></td></tr>
+	<tr><td><b>Issue Date:</b></td><td>12th September, 2005</td></tr>
+	<tr><td><b>Version:</b></td><td>1.2</td></tr>
+	<tr><td>&nbsp;</td></tr>
+	<tr><td>Download (Windows):</td><td> <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.2.zip?download">pyDes-1.2.zip</a></td></tr>
+	<tr><td>Download (Unix):</td><td> <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.2.tar.gz?download">pyDes-1.2.tar.gz</a></td></tr>
+	<tr><td>&nbsp;</td></tr>
+	<tr><td>Last updated:</td><td>12th September, 2005</td></tr>
+</table>
+
+<br>
+<h2>About pyDES</h2>
+<p>
+This algorithm is a pure python implementation of the DES algorithm.
+It is in pure python to avoid portability issues, since most DES 
+implementations are programmed in C (for performance reasons).
+</p>
+
+<p>
+Triple DES class is also implemented, utilising the DES base. Triple DES
+is either DES-EDE3 with a 24 byte key, or DES-EDE2 with a 16 byte key.
+See the "About triple DES" section below more info on this algorithm.
+</p>
+
+<p>
+The code below is not written for speed or performance, so not for those
+needing a fast des implementation, but rather a handy portable solution ideal
+for small usage. It takes my AMD2000+ machine 1 second per 2.5 kilobyte to
+encrypt or decrypt using the DES method. Thats very SLOW!!
+</p>
+
+<h2>About triple DES</h2>
+<p>
+Triple DES is just running the DES algorithm 3 times over the data with the
+specified key. The supplied key is split up into 3 parts, each part being 8
+bytes long (the mandatory key size for DES).
+</p>
+
+<p>
+The triple DES algorithm uses the DES-EDE3 method when a 24 byte key is
+supplied. This means there are three DES operations in the sequence
+encrypt-decrypt-encrypt with the three different keys. The first key will be
+bytes 1 to 8, the second key bytes 9 to 16 and the third key bytes 17 to 24.
+</p>
+
+<p>
+If a 16 byte key is supplied instead, the triple DES method used will be
+DES-EDE2. This means there are three DES operations in the sequence
+encrypt-decrypt-encrypt, but the first and third operations use the same key.
+The first/third key will be bytes 1 to 8 and the second key bytes 9 to 16.
+</p>
+
+<h2>Credits</h2>
+<p>
+Thanks go to:<br>
+<b>David Broadwell</b> for his ideas, comments and suggestions.<br>
+<b>Mario Wolff</b> for finding errors in triple des CBC.
+</p>
+
+<h2>Installation</h2>
+<ul>
+	<li>Extract the files from the pyDes archive.</li>
+	<li>Run the following command: python setup.py install</li>
+</ul>
+<p>
+Note: 	On Unix, you'd run this command from a shell prompt; on Windows, you
+	have to open a command prompt window (``DOS box'') and do it there;
+</p>
+
+<h2>pyDes Usage</h2>
+<pre>
+Class initialization
+--------------------
+pyDes.des(key, [mode], [IV])
+pyDes.triple_des(key, [mode], [IV])
+
+key  -> String containing the encryption key, 8 bytes for DES, 16 for Triple DES
+mode -> Optional argument for encryption type, can be either
+        pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
+IV   -> Optional argument, must be supplied if using CBC mode. Must be 8 bytes
+
+
+Common methods
+--------------
+encrypt(data, [pad])
+decrypt(data, [pad])
+
+data -> String to be encrypted/decrypted
+pad  -> Optional argument. For encryption, adds this characters to the end of
+	the data string when data is not a multiple of 8 bytes. For decryption,
+	will remove the trailing characters that match this pad character from
+	the last 8 bytes of the unencrypted data string.
+
+Example
+-------
+
+import pyDes
+
+k = pyDes.des("DESCRYPT", pyDes.CBC, "\0\0\0\0\0\0\0\0")
+d = k.encrypt("Please encrypt my string")
+print "Encypted string: " + d
+print "Decypted string: " + k.decrypt(d)
+
+k = pyDes.triple_des("MySecretTripleDesKeyData")
+d = k.encrypt("Encrypt this sensitive data", "*")
+print "Encypted string: " + d
+print "Decypted string: " + k.decrypt(d, "*")
+
+
+
+See the module source (pyDes.py) for more examples of use.
+You can slo run the pyDes.py file without and arguments to see a simple test.
+
+Note: This code was not written for high-end systems needing a fast
+      implementation, but rather a handy portable solution with small usage.
+</pre>
+
+<h2>Older pyDES versions</h2>
+<p>
+Download (Windows): <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.1.zip?download">pyDes-1.1.zip</a><br>
+Download (Unix):    <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.1.tar.gz?download">pyDes-1.1.tar.gz</a><br>
+</p>
+<p>
+Download (Windows): <a href="http://twhiteman.netfirms.com/pyDES/pyDes-1.0.zip">pyDes-1.0.zip</a><br>
+Download (Unix):    <a href="http://twhiteman.netfirms.com/pyDES/pyDes-1.0.tar.gz">pyDes-1.0.tar.gz</a><br>
+</p>
+
+							</td>
+						</tr>
+					</table>
+				</td>
+    		</tr>
+		</table>
+	</body>
+</html>
+
