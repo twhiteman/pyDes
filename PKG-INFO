@@ -6,7 +6,7 @@ Author-email: twhitema at gmail com
 Home-page: http://twhiteman.netfirms.com/des.html
 Download-url: http://twhiteman.netfirms.com/pyDES/pyDes-1.2.zip
 Summary: Pure python implementation of DES and TRIPLE DES encryption algorithm
-License: Free
+License: Public Domain
 Description: This algorithm is a pure python implementation of the DES and Triple DES
         algorithms. Triple DES is either DES-EDE3 with a 24 byte key, or DES-EDE2 with
         a 16 byte key.

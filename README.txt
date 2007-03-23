@@ -5,6 +5,7 @@
 Author:   Todd Whiteman
 Date:     12th September, 2005
 Verion:   1.2
+License:  Public Domain - free to do as you wish
 Homepage: http://twhiteman.netfirms.com/des.html
 
 This algorithm is a pure python implementation of the DES algorithm.
