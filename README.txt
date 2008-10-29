@@ -3,8 +3,8 @@
 #############################################################################
 
 Author:   Todd Whiteman
-Date:     12th September, 2005
-Verion:   1.2
+Date:     28th October, 2008
+Verion:   1.3
 License:  Public Domain - free to do as you wish
 Homepage: http://twhiteman.netfirms.com/des.html
 
@@ -46,6 +46,7 @@ The first/third key will be bytes 1 to 8 and the second key bytes 9 to 16.
 Thanks go to:
  - David Broadwell:	Ideas, comments and suggestions
  - Mario Wolff:		Finding and debugging triple des CBC errors.
+ - Santiago Palladino:  Enlightening me on the PKCS5 padding technique.
 
 
 #############################################################################
@@ -65,45 +66,56 @@ Note: 	On Unix, you'd run this command from a shell prompt; on Windows, you
 
 Class initialization
 --------------------
-pyDes.des(key, [mode], [IV])
-pyDes.triple_des(key, [mode], [IV])
+pyDes.des(key, [mode], [IV], [pad], [padmode])
+pyDes.triple_des(key, [mode], [IV], [pad], [padmode])
 
-key  -> String containing the encryption key, 8 bytes for DES, 16 for Triple DES
-mode -> Optional argument for encryption type, can be either
-        pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
-IV   -> Optional argument, must be supplied if using CBC mode. Must be 8 bytes
+key     -> String containing the encryption key. 8 bytes for DES, 16 or 24 bytes
+	   for Triple DES
+mode    -> Optional argument for encryption type, can be either
+	   pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
+IV      -> Optional argument, must be supplied if using CBC mode. Length must
+	   be 8 bytes
+pad     -> Optional argument, set the pad character (PAD_NORMAL) to use during
+	   all encrypt/decrpt operations done with this instance.
+padmode -> Optional argument, set the padding mode (PAD_NORMAL or PAD_PKCS5)
+	   to use during all encrypt/decrpt operations done with this instance.
 
+I recommend to use PAD_PKCS5 padding, as then you never need to worry about any
+padding issues, as the padding can be removed unambiguously upon decrypting
+data that was encrypted using PAD_PKCS5 padmode.
 
 Common methods
 --------------
-encrypt(data, [pad])
-decrypt(data, [pad])
+encrypt(data, [pad], [padmode])
+decrypt(data, [pad], [padmode])
 
-data -> String to be encrypted/decrypted
-pad  -> Optional argument. For encryption, adds this characters to the end of
-	the data string when data is not a multiple of 8 bytes. For decryption,
-	will remove the trailing characters that match this pad character from
-	the last 8 bytes of the unencrypted data string.
+data    -> String to be encrypted/decrypted
+pad     -> Optional argument. Only when using padmode of PAD_NORMAL. For
+	   encryption, adds this characters to the end of the data string when
+	   data is not a multiple of 8 bytes. For decryption, will remove the
+	   trailing characters that match this pad character from the last 8
+	   bytes of the unencrypted data string.
+padmode -> Optional argument, set the padding mode, must be one of PAD_NORMAL
+	   or PAD_PKCS5). Defaults to PAD_NORMAL.
+	  
 
 Example
 -------
+from pyDes import *
 
-import pyDes
+data = "Please encrypt my string"
+k = des("DESCRYPT", CBC, "\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
+d = k.encrypt(data)
+print "Encypted string: %r" % d
+print "Decypted string: %r" % k.decrypt(d)
 
-k = pyDes.des("DESCRYPT", pyDes.CBC, "\0\0\0\0\0\0\0\0")
-d = k.encrypt("Please encrypt my string")
-print "Encypted string: " + d
-print "Decypted string: " + k.decrypt(d)
-
-k = pyDes.triple_des("MySecretTripleDesKeyData")
-d = k.encrypt("Encrypt this sensitive data", "*")
-print "Encypted string: " + d
-print "Decypted string: " + k.decrypt(d, "*")
-
+data = "Please encrypt me"
+k = des("DESCRYPT")
+assert k.decrypt(k.encrypt(data, padmode=PAD_PKCS5), padmode=PAD_PKCS5) == data
 
 
 See the module source (pyDes.py) for more examples of use.
-You can slo run the pyDes.py file without and arguments to see a simple test.
+You can also run the pyDes.py file without and arguments to see a simple test.
 
 Note: This code was not written for high-end systems needing a fast
       implementation, but rather a handy portable solution with small usage.

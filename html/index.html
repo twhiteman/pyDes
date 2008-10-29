@@ -21,18 +21,16 @@
               				<td>
 <table>
     <tr><td><b>Author:</b></td><td><a href="mailto:twhiteman@users.sourceforge.net">Todd Whiteman</a></td></tr>
-	<tr><td><b>Issue Date:</b></td><td>12th September, 2005</td></tr>
-	<tr><td><b>Version:</b></td><td>1.2</td></tr>
-	<tr><td><b>Compatibility:</b></td><td>Requires Python 2.2 or higher, a Python 1.5.2 compatible module can be found in the <a href="http://pydes.cvs.sourceforge.net/pydes/pyDes/">CVS source</a>.<br/>
-	                                      
-				     </td></tr>
+	<tr><td><b>Issue Date:</b></td><td>28th October, 2008</td></tr>
+	<tr><td><b>Version:</b></td><td>1.3</td></tr>
+	<tr><td><b>Compatibility:</b></td><td>Requires Python 2.2 or higher, an older Python 1.5.2 compatible module can be found in the <a href="http://pydes.cvs.sourceforge.net/pydes/pyDes/">CVS source</a>.<br/></td></tr>
 	<tr><td>&nbsp;</td></tr>
-	<tr><td>Download (Windows):</td><td> <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.2.zip?download">pyDes-1.2.zip</a></td></tr>
-	<tr><td>Download (Unix):</td><td> <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.2.tar.gz?download">pyDes-1.2.tar.gz</a></td></tr>
+	<tr><td>Download (Windows):</td><td> <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.3.zip?download">pyDes-1.3.zip</a></td></tr>
+	<tr><td>Download (Unix):</td><td> <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.3.tar.gz?download">pyDes-1.3.tar.gz</a></td></tr>
 	<tr><td>&nbsp;</td></tr>
 	<tr><td><b>License:</b></td><td>Free - Public Domain</td></tr>
 	<tr><td><b>Source code:</b></td><td><a href="http://sourceforge.net/projects/pydes/">SourceForge: pyDes</a></td></tr>
-	<tr><td><b>Last updated:</b></td><td>4th September, 2008</td></tr>
+	<tr><td><b>Last updated:</b></td><td>28th October, 2008</td></tr>
 </table>
 
 <br>
@@ -53,7 +51,7 @@ See the "About triple DES" section below more info on this algorithm.
 The code below is not written for speed or performance, so not for those
 needing a fast des implementation, but rather a handy portable solution ideal
 for small usage. It takes my AMD2000+ machine 1 second per 2.5 kilobyte to
-encrypt or decrypt using the DES method. Thats very SLOW!!
+encrypt or decrypt using the DES method. That is extremely SLOW!!
 </p>
 
 <h2>About triple DES</h2>
@@ -82,6 +80,7 @@ The first/third key will be bytes 1 to 8 and the second key bytes 9 to 16.
 Thanks go to:<br>
 <b>David Broadwell</b> for his ideas, comments and suggestions.<br>
 <b>Mario Wolff</b> for finding errors in triple des CBC.
+<b>Santiago Palladino</b> for enlightening me on the PKCS5 padding technique.
 </p>
 
 <h2>Installation</h2>
@@ -98,40 +97,52 @@ Note: 	On Unix, you'd run this command from a shell prompt; on Windows, you
 <pre>
 Class initialization
 --------------------
-pyDes.des(key, [mode], [IV])
-pyDes.triple_des(key, [mode], [IV])
+pyDes.des(key, [mode], [IV], [pad], [padmode])
+pyDes.triple_des(key, [mode], [IV], [pad], [padmode])
 
-key  -> String containing the encryption key, 8 bytes for DES, 16 for Triple DES
-mode -> Optional argument for encryption type, can be either
-        pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
-IV   -> Optional argument, must be supplied if using CBC mode. Must be 8 bytes
+key     -> String containing the encryption key. 8 bytes for DES, 16 or 24 bytes
+	   for Triple DES
+mode    -> Optional argument for encryption type, can be either
+	   pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
+IV      -> Optional argument, must be supplied if using CBC mode. Length must
+	   be 8 bytes
+pad     -> Optional argument, set the pad character (PAD_NORMAL) to use during
+	   all encrypt/decrpt operations done with this instance.
+padmode -> Optional argument, set the padding mode (PAD_NORMAL or PAD_PKCS5)
+	   to use during all encrypt/decrpt operations done with this instance.
 
+I recommend to use PAD_PKCS5 padding, as then you never need to worry about any
+padding issues, as the padding can be removed unambiguously upon decrypting
+data that was encrypted using PAD_PKCS5 padmode.
 
 Common methods
 --------------
-encrypt(data, [pad])
-decrypt(data, [pad])
+encrypt(data, [pad], [padmode])
+decrypt(data, [pad], [padmode])
 
-data -> String to be encrypted/decrypted
-pad  -> Optional argument. For encryption, adds this characters to the end of
-	the data string when data is not a multiple of 8 bytes. For decryption,
-	will remove the trailing characters that match this pad character from
-	the last 8 bytes of the unencrypted data string.
+data    -> String to be encrypted/decrypted
+pad     -> Optional argument. Only when using padmode of PAD_NORMAL. For
+	   encryption, adds this characters to the end of the data string when
+	   data is not a multiple of 8 bytes. For decryption, will remove the
+	   trailing characters that match this pad character from the last 8
+	   bytes of the unencrypted data string.
+padmode -> Optional argument, set the padding mode, must be one of PAD_NORMAL
+	   or PAD_PKCS5). Defaults to PAD_NORMAL.
+	  
 
 Example
 -------
+from pyDes import *
 
-import pyDes
+data = "Please encrypt my string"
+k = des("DESCRYPT", CBC, "\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
+d = k.encrypt(data)
+print "Encypted string: %r" % d
+print "Decypted string: %r" % k.decrypt(d)
 
-k = pyDes.des("DESCRYPT", pyDes.CBC, "\0\0\0\0\0\0\0\0")
-d = k.encrypt("Please encrypt my string")
-print "Encypted string: " + d
-print "Decypted string: " + k.decrypt(d)
-
-k = pyDes.triple_des("MySecretTripleDesKeyData")
-d = k.encrypt("Encrypt this sensitive data", "*")
-print "Encypted string: " + d
-print "Decypted string: " + k.decrypt(d, "*")
+data = "Please encrypt me"
+k = des("DESCRYPT")
+assert k.decrypt(k.encrypt(data, padmode=PAD_PKCS5), padmode=PAD_PKCS5) == data
 
 
 
@@ -143,6 +154,10 @@ Note: This code was not written for high-end systems needing a fast
 </pre>
 
 <h2>Older pyDES versions</h2>
+<p>
+Download (Windows): <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.2.zip?download">pyDes-1.2.zip</a><br>
+Download (Unix):    <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.2.tar.gz?download">pyDes-1.2.tar.gz</a><br>
+</p>
 <p>
 Download (Windows): <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.1.zip?download">pyDes-1.1.zip</a><br>
 Download (Unix):    <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.1.tar.gz?download">pyDes-1.1.tar.gz</a><br>

@@ -3,8 +3,8 @@
 #############################################################################
 
 # Author:   Todd Whiteman
-# Date:     12th September, 2005
-# Verion:   1.2
+# Date:     28th October, 2008
+# Verion:   1.3
 # License:  Public Domain - free to do as you wish
 # Homepage: http://twhiteman.netfirms.com/des.html
 #
@@ -21,40 +21,79 @@
 # Thanks to David Broadwell for ideas, comments and suggestions.
 # Thanks to Mario Wolff for pointing out and debugging some triple des CBC errors.
 #
-"""A pure python implementation of the DES and TRIPLE DES encryption algorithms
+"""A pure python implementation of the DES and TRIPLE DES encryption algorithms.
 
-pyDes.des(key, [mode], [IV])
-pyDes.triple_des(key, [mode], [IV])
+Class initialization
+--------------------
+pyDes.des(key, [mode], [IV], [pad], [padmode])
+pyDes.triple_des(key, [mode], [IV], [pad], [padmode])
 
-key  -> String containing the encryption key. 8 bytes for DES, 16 or 24 bytes
-	for Triple DES
-mode -> Optional argument for encryption type, can be either
-        pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
-IV   -> Optional argument, must be supplied if using CBC mode. Must be 8 bytes
+key     -> String containing the encryption key. 8 bytes for DES, 16 or 24 bytes
+	   for Triple DES
+mode    -> Optional argument for encryption type, can be either
+	   pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
+IV      -> Optional argument, must be supplied if using CBC mode. Length must
+	   be 8 bytes
+pad     -> Optional argument, set the pad character (PAD_NORMAL) to use during
+	   all encrypt/decrpt operations done with this instance.
+padmode -> Optional argument, set the padding mode (PAD_NORMAL or PAD_PKCS5)
+	   to use during all encrypt/decrpt operations done with this instance.
 
+I recommend to use PAD_PKCS5 padding, as then you never need to worry about any
+padding issues, as the padding can be removed unambiguously upon decrypting
+data that was encrypted using PAD_PKCS5 padmode.
 
-Example:
+Common methods
+--------------
+encrypt(data, [pad], [padmode])
+decrypt(data, [pad], [padmode])
+
+data    -> String to be encrypted/decrypted
+pad     -> Optional argument. Only when using padmode of PAD_NORMAL. For
+	   encryption, adds this characters to the end of the data string when
+	   data is not a multiple of 8 bytes. For decryption, will remove the
+	   trailing characters that match this pad character from the last 8
+	   bytes of the unencrypted data string.
+padmode -> Optional argument, set the padding mode, must be one of PAD_NORMAL
+	   or PAD_PKCS5). Defaults to PAD_NORMAL.
+	  
+
+Example
+-------
 from pyDes import *
 
 data = "Please encrypt my string"
-k = des("DESCRYPT", " ", CBC, "\0\0\0\0\0\0\0\0")
+k = des("DESCRYPT", CBC, "\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
 d = k.encrypt(data)
-print "Encypted string: " + d
-print "Decypted string: " + k.decrypt(d)
+print "Encypted string: %r" % d
+print "Decypted string: %r" % k.decrypt(d)
+
+data = "Please encrypt me"
+k = des("DESCRYPT")
+assert k.decrypt(k.encrypt(data, padmode=PAD_PKCS5), padmode=PAD_PKCS5) == data
+
 
 See the module source (pyDes.py) for more examples of use.
-You can slo run the pyDes.py file without and arguments to see a simple test.
+You can also run the pyDes.py file without and arguments to see a simple test.
 
 Note: This code was not written for high-end systems needing a fast
       implementation, but rather a handy portable solution with small usage.
 
 """
 
-
 # Modes of crypting / cyphering
 ECB =	0
 CBC =	1
 
+# Modes of padding
+PAD_NORMAL = 1
+PAD_PKCS5 = 2
+
+# PAD_PKCS5: is a method that will unambiguously remove all padding
+#            characters after decryption, when originally encrypted with
+#            this padding mode.
+# For a good description of the PKCS5 padding technique, see:
+# http://www.faqs.org/rfcs/rfc1423.html
 
 #############################################################################
 # 				    DES					    #
@@ -204,17 +243,25 @@ class des:
 	DECRYPT =	0x01
 
 	# Initialisation
-	def __init__(self, key, mode=ECB, IV=None):
+	def __init__(self, key, mode=ECB, IV=None, pad=None, padmode=PAD_NORMAL):
+		# Sanity checking of arguments.
 		if len(key) != 8:
 			raise ValueError("Invalid DES key size. Key must be exactly 8 bytes long.")
-		self.block_size = 8
+		if pad and padmode == PAD_PKCS5:
+			raise ValueError("Cannot use a pad character with PAD_PKCS5")
+
 		self.key_size = 8
-		self.__padding = ''
+		self.block_size = 8
 
 		# Set the passed in variables
-		self.setMode(mode)
+		self.__padding = pad
+		self.__padmode = padmode
+		self.__mode = mode
 		if IV:
+			# Note: setIV will do some additional sanity checking.
 			self.setIV(IV)
+		else:
+			self.__iv = None
 
 		self.L = []
 		self.R = []
@@ -241,6 +288,22 @@ class des:
 		"""Sets the type of crypting mode, pyDes.ECB or pyDes.CBC"""
 		self.__mode = mode
 
+	def getPadding(self):
+		"""getPadding() -> string of length 1. Padding character."""
+		return self.__padding
+
+	def setPadding(self, pad):
+		"""setPadding() -> string of length 1. Padding character."""
+		self.__padding = pad
+
+	def getPadMode(self):
+		"""getPadMode() -> pyDes.PAD_NORMAL or pyDes.PAD_PKCS5"""
+		return self.__padmode
+		
+	def setPadMode(self, mode):
+		"""Sets the type of padding mode, pyDes.PAD_NORMAL or pyDes.PAD_PKCS5"""
+		self.__padmode = mode
+
 	def getIV(self):
 		"""getIV() -> string"""
 		return self.__iv
@@ -250,10 +313,6 @@ class des:
 		if not IV or len(IV) != self.block_size:
 			raise ValueError("Invalid Initial Value (IV), must be a multiple of " + str(self.block_size) + " bytes")
 		self.__iv = IV
-
-	def getPadding(self):
-		"""getPadding() -> string of length 1. Padding character."""
-		return self.__padding
 
 	def __String_to_BitList(self, data):
 		"""Turn the string data, into a list of bits (1, 0)'s"""
@@ -469,46 +528,96 @@ class des:
 
 		# print "Lines: %d, cached: %d" % (lines, cached)
 
-		# Remove the padding from the last block
-		if crypt_type == des.DECRYPT and self.getPadding():
-			#print "Removing decrypt pad"
-			s = result[-1]
-			while s[-1] == self.getPadding():
-				s = s[:-1]
-			result[-1] = s
-
 		# Return the full crypted string
 		return ''.join(result)
 
-	def encrypt(self, data, pad=''):
-		"""encrypt(data, [pad]) -> string
+	def __padData(self, data, pad, padmode):
+		# Pad data depending on the mode
+		if padmode is None:
+			# Get the default padding mode.
+			padmode = self.getPadMode()
+		if pad and padmode == PAD_PKCS5:
+			raise ValueError("Cannot use a pad character with PAD_PKCS5")
+
+		if padmode == PAD_NORMAL:
+			if len(data) % self.block_size == 0:
+				# No padding required.
+				return data
+
+			if not pad:
+				# Get the default padding.
+				pad = self.getPadding()
+			if not pad:
+				raise ValueError("Data must be a multiple of " + str(self.block_size) + " bytes in length. Use padmode=PAD_PKCS5 or set the pad character.")
+			data += (self.block_size - (len(data) % self.block_size)) * pad
+			#print "Len of data: %f" % (len(data) / self.block_size)
+		
+		elif padmode == PAD_PKCS5:
+			pad_len = 8 - (len(data) % self.block_size)
+			data += pad_len * chr(pad_len)
+			#print "Len of data after PAD_PKCS5: %f" % (len(data) / self.block_size)
+
+		return data
+
+	def __unpadData(self, data, pad, padmode):
+		# Unpad data depending on the mode.
+		if not data:
+			return data
+		if pad and padmode == PAD_PKCS5:
+			raise ValueError("Cannot use a pad character with PAD_PKCS5")
+		if padmode is None:
+			# Get the default padding mode.
+			padmode = self.getPadMode()
+
+		if padmode == PAD_NORMAL:
+			if not pad:
+				# Get the default padding.
+				pad = self.getPadding()
+			if pad:
+				#print "Removing PAD_NORMAL padding"
+				data = data[:-self.block_size] + \
+				       data[-self.block_size:].rstrip(pad)
+
+		elif padmode == PAD_PKCS5:
+			pad_len = ord(data[-1])
+			data = data[:-pad_len]
+
+		return data
+
+	def encrypt(self, data, pad='', padmode=None):
+		"""encrypt(data, [pad], [padmode]) -> string
 
 		data : String to be encrypted
 		pad  : Optional argument for encryption padding. Must only be one byte
+		padmode : Padding mode, defaults to PAD_NORMAL if not supplied.
 
 		The data must be a multiple of 8 bytes and will be encrypted
 		with the already specified key. Data does not have to be a
-		multiple of 8 bytes if the padding character is supplied, the
-		data will then be padded to a multiple of 8 bytes with this
-		pad character.
+		multiple of 8 bytes if the padding character is supplied, or
+		the padmode is set to PAD_PKCS5, as bytes will then added to
+		ensure the be padded data is a multiple of 8 bytes.
 		"""
-		self.__padding = pad
+		data = self.__padData(data, pad, padmode)
 		return self.crypt(data, des.ENCRYPT)
 
-	def decrypt(self, data, pad=''):
-		"""decrypt(data, [pad]) -> string
+	def decrypt(self, data, pad='', padmode=None):
+		"""decrypt(data, [pad], [padmode]) -> string
 
 		data : String to be encrypted
 		pad  : Optional argument for decryption padding. Must only be one byte
+		padmode : Padding mode, defaults to PAD_NORMAL if not supplied.
 
 		The data must be a multiple of 8 bytes and will be decrypted
-		with the already specified key. If the optional padding character
-		is supplied, then the un-encypted data will have the padding characters
-		removed from the end of the string. This pad removal only occurs on the
-		last 8 bytes of the data (last data block).
+		with the already specified key. In PAD_NORMAL mode, if the
+		optional padding character is supplied, then the un-encypted
+		data will have the padding characters removed from the end of
+		the string. This pad removal only occurs on the last 8 bytes of
+		the data (last data block). In PAD_PKCS5 mode, the special
+		padding end markers will be removed from the data after decrypting.
 		"""
-		self.__padding = pad
-		return self.crypt(data, des.DECRYPT)
+		data = self.crypt(data, des.DECRYPT)
+		return self.__unpadData(data, pad, padmode)
+
 
 
 #############################################################################
@@ -578,17 +687,18 @@ class triple_des:
 		"""Will set the Initial Value, used in conjunction with CBC mode"""
 		self.__iv = IV
 
-	def encrypt(self, data, pad=''):
-		"""encrypt(data, [pad]) -> string
+	def encrypt(self, data, pad='', padmode=PAD_NORMAL):
+		"""encrypt(data, [pad], [padmode]) -> string
 
 		data : String to be encrypted
 		pad  : Optional argument for encryption padding. Must only be one byte
+		padmode : Padding mode, defaults to PAD_NORMAL if not supplied.
 
 		The data must be a multiple of 8 bytes and will be encrypted
 		with the already specified key. Data does not have to be a
-		multiple of 8 bytes if the padding character is supplied, the
-		data will then be padded to a multiple of 8 bytes with this
-		pad character.
+		multiple of 8 bytes if the padding character is supplied, or
+		the padmode is set to PAD_PKCS5, as bytes will then added to
+		ensure the be padded data is a multiple of 8 bytes.
 		"""
 		if self.getMode() == CBC:
 			self.__key1.setIV(self.getIV())
@@ -597,7 +707,7 @@ class triple_des:
 			i = 0
 			result = []
 			while i < len(data):
-				block = self.__key1.encrypt(data[i:i+8], pad)
+				block = self.__key1.encrypt(data[i:i+8], pad, padmode)
 				block = self.__key2.decrypt(block)
 				block = self.__key3.encrypt(block)
 				self.__key1.setIV(block)
@@ -607,21 +717,25 @@ class triple_des:
 				i += 8
 			return ''.join(result)
 		else:
-			data = self.__key1.encrypt(data, pad)
+			data = self.__key1.encrypt(data, pad, padmode)
 			data = self.__key2.decrypt(data)
 			return self.__key3.encrypt(data)
 
-	def decrypt(self, data, pad=''):
-		"""decrypt(data, [pad]) -> string
+	def decrypt(self, data, pad='', padmode=None):
+		"""decrypt(data, [pad], [padmode]) -> string
 
 		data : String to be encrypted
 		pad  : Optional argument for decryption padding. Must only be one byte
+		padmode : Padding mode, defaults to PAD_NORMAL if not supplied.
 
 		The data must be a multiple of 8 bytes and will be decrypted
-		with the already specified key. If the optional padding character
-		is supplied, then the un-encypted data will have the padding characters
-		removed from the end of the string. This pad removal only occurs on the
-		last 8 bytes of the data (last data block).
+		with the already specified key. In PAD_NORMAL mode, if the
+		optional padding character is supplied, then the un-encypted
+		data will have the padding characters removed from the end of
+		the string. This pad removal only occurs on the last 8 bytes of
+		the data (last data block). In PAD_PKCS5 mode, the special
+		padding end markers will be removed from the data after
+		decrypting, no pad character is required for PAD_PKCS5.
 		"""
 		if self.getMode() == CBC:
 			self.__key1.setIV(self.getIV())
@@ -633,7 +747,7 @@ class triple_des:
 				iv = data[i:i+8]
 				block = self.__key3.decrypt(iv)
 				block = self.__key2.encrypt(block)
-				block = self.__key1.decrypt(block, pad)
+				block = self.__key1.decrypt(block, pad, padmode)
 				self.__key1.setIV(iv)
 				self.__key2.setIV(iv)
 				self.__key3.setIV(iv)
@@ -643,13 +757,13 @@ class triple_des:
 		else:
 			data = self.__key3.decrypt(data)
 			data = self.__key2.encrypt(data)
-			return self.__key1.decrypt(data, pad)
+			return self.__key1.decrypt(data, pad, padmode)
 
 
 #############################################################################
 # 				Examples				    #
 #############################################################################
-def example_triple_des():
+def __example_triple_des__():
 	from time import time
 
 	# Utility module
@@ -664,20 +778,20 @@ def example_triple_des():
 	k2 = des(unhex("1122334455667788"))
 	k3 = des(unhex("77661100DD223311"))
 	d = "Triple DES test string, to be encrypted and decrypted..."
-	print "Key1:      %s" % k1.getKey()
-	print "Key2:      %s" % k2.getKey()
-	print "Key3:      %s" % k3.getKey()
-	print "Data:      %s" % d
+	print "Key1:      %r" % k1.getKey()
+	print "Key2:      %r" % k2.getKey()
+	print "Key3:      %r" % k3.getKey()
+	print "Data:      %r" % d
 
 	e1 = k1.encrypt(d)
 	e2 = k2.decrypt(e1)
 	e3 = k3.encrypt(e2)
-	print "Encrypted: " + e3
+	print "Encrypted: %r" % e3
 
 	d3 = k3.decrypt(e3)
 	d2 = k2.encrypt(d3)
 	d1 = k1.decrypt(d2)
-	print "Decrypted: " + d1
+	print "Decrypted: %r" % d1
 	print "DES time taken: %f (%d crypt operations)" % (time() - t, 6 * (len(d) / 8))
 	print ""
 
@@ -685,18 +799,18 @@ def example_triple_des():
 	print "Now using triple des class"
 	t = time()
 	t1 = triple_des(unhex("133457799BBCDFF1112233445566778877661100DD223311"))
-	print "Key:       %s" % t1.getKey()
-	print "Data:      %s" % d
+	print "Key:       %r" % t1.getKey()
+	print "Data:      %r" % d
 
 	td1 = t1.encrypt(d)
-	print "Encrypted: " + td1
+	print "Encrypted: %r" % td1
 
 	td2 = t1.decrypt(td1)
-	print "Decrypted: " + td2
+	print "Decrypted: %r" % td2
 
 	print "Triple DES time taken: %f (%d crypt operations)" % (time() - t, 6 * (len(d) / 8))
 
-def example_des():
+def __example_des__():
 	from time import time
 
 	# example of DES encrypting in CBC mode with the IV of "\0\0\0\0\0\0\0\0"
@@ -704,72 +818,110 @@ def example_des():
 	t = time()
 	k = des("DESCRYPT", CBC, "\0\0\0\0\0\0\0\0")
 	data = "DES encryption algorithm"
-	print "Key      : " + k.getKey()
-	print "Data     : " + data
+	print "Key      : %r" % k.getKey()
+	print "Data     : %r" % data
 
 	d = k.encrypt(data)
-	print "Encrypted: " + d
+	print "Encrypted: %r" % d
 
 	d = k.decrypt(d)
-	print "Decrypted: " + d
+	print "Decrypted: %r" % d
 	print "DES time taken: %f (6 crypt operations)" % (time() - t)
 	print ""
 
-def __test__():
-	example_des()
-	example_triple_des()
-
-
 def __fulltest__():
 	# This should not produce any unexpected errors or exceptions
+	from time import time
 	from binascii import unhexlify as unhex
 	from binascii import hexlify as dohex
 
-	__test__()
-	print ""
+	t = time()
 
 	k = des("\0\0\0\0\0\0\0\0", CBC, "\0\0\0\0\0\0\0\0")
 	d = k.encrypt("DES encryption algorithm")
 	if k.decrypt(d) != "DES encryption algorithm":
-		print "Test 1 Error: Unencypted data block does not match start data"
-	
+		print "Test 1:  Error: Unencypted data block does not match start data"
+	else:
+		print "Test 1:  Successful"
+
 	k = des("\0\0\0\0\0\0\0\0", CBC, "\0\0\0\0\0\0\0\0")
 	d = k.encrypt("Default string of text", '*')
 	if k.decrypt(d, "*") != "Default string of text":
-		print "Test 2 Error: Unencypted data block does not match start data"
+		print "Test 2:  Error: Unencypted data block does not match start data"
+	else:
+		print "Test 2:  Successful"
 
 	k = des("\r\n\tABC\r\n")
 	d = k.encrypt("String to Pad", '*')
 	if k.decrypt(d) != "String to Pad***":
 		print "'%s'" % k.decrypt(d)
-		print "Test 3 Error: Unencypted data block does not match start data"
+		print "Test 3:  Error: Unencypted data block does not match start data"
+	else:
+		print "Test 3:  Successful"
 
 	k = des("\r\n\tABC\r\n")
 	d = k.encrypt(unhex("000102030405060708FF8FDCB04080"), unhex("44"))
 	if k.decrypt(d, unhex("44")) != unhex("000102030405060708FF8FDCB04080"):
-		print "Test 4a Error: Unencypted data block does not match start data"
-	if k.decrypt(d) != unhex("000102030405060708FF8FDCB0408044"):
-		print "Test 4b Error: Unencypted data block does not match start data"
+		print "Test 4a: Error: Unencypted data block does not match start data"
+	elif k.decrypt(d) != unhex("000102030405060708FF8FDCB0408044"):
+		print "Test 4b: Error: Unencypted data block does not match start data"
+	else:
+		print "Test 4:  Successful"
+
+	k = des("\r\n\tkey\r\n")
+	d = k.encrypt("String to Pad", padmode=PAD_PKCS5)
+	if k.decrypt(d, padmode=PAD_PKCS5) != "String to Pad":
+		print "'%s' != 'String to Pad'" % k.decrypt(d)
+		print "Test 5:  Error: Unencypted data does not match original data"
+	else:
+		print "Test 5:  Successful"
 
 	k = triple_des("MyDesKey\r\n\tABC\r\n0987*543")
 	d = k.encrypt(unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080"))
 	if k.decrypt(d) != unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080"):
-		print "Test 5 Error: Unencypted data block does not match start data"
+		print "Test 6:  Error: Unencypted data block does not match start data"
+	else:
+		print "Test 6:  Successful"
 
 	k = triple_des("\r\n\tABC\r\n0987*543")
 	d = k.encrypt(unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080"))
 	if k.decrypt(d) != unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080"):
-		print "Test 6 Error: Unencypted data block does not match start data"
+		print "Test 7:  Error: Unencypted data block does not match start data"
+	else:
+		print "Test 7:  Successful"
 
 	k = triple_des("MyDesKey\r\n\tABC\r\n0987*54B", CBC, "12341234")
 	d = k.encrypt(unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080"))
 	if k.decrypt(d) != unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080"):
-		print "Test 7 Error: Triple DES CBC failed."
+		print "Test 8:  Error: Triple DES CBC failed."
+	else:
+		print "Test 8:  Successful"
 
 	k = triple_des("MyDesKey\r\n\tABC\r\n0987*54B", CBC, "12341234")
 	d = k.encrypt(unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDC"), '.')
 	if k.decrypt(d, '.') != unhex("000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDCB04080000102030405060708FF8FDC"):
-		print "Test 8 Error: Triple DES CBC with padding failed."
+		print "Test 9:  Error: Triple DES CBC with padding failed."
+	else:
+		print "Test 9:  Successful"
+
+	k = triple_des("\r\n\tkey\rIsGoodKey")
+	d = k.encrypt("String to Pad", padmode=PAD_PKCS5)
+	if k.decrypt(d, padmode=PAD_PKCS5) != "String to Pad":
+		print "'%s' != 'String to Pad'" % k.decrypt(d)
+		print "Test 10: Error: Unencypted data does not match original data"
+	else:
+		print "Test 10: Successful"
+
+	k = triple_des("\r\n\tkey\rIsGoodKey")
+	d = k.encrypt("String not need Padding.", padmode=PAD_PKCS5)
+	if k.decrypt(d, padmode=PAD_PKCS5) != "String not need Padding.":
+		print "'%s' != 'String not need Padding.'" % k.decrypt(d)
+		print "Test 11: Error: Unencypted data does not match original data"
+	else:
+		print "Test 11: Successful"
+
+	print ""
+	print "Total time taken: %f" % (time() - t)
 
 def __filetest__():
 	from time import time
@@ -793,12 +945,16 @@ def __filetest__():
 	print "DES file test time: %f" % (time() - t)
 	
 def __profile__():
-	import profile
+	try:
+		import profile
+	except:
+		import cProfile as profile
 	profile.run('__fulltest__()')
 	#profile.run('__filetest__()')
 
 if __name__ == '__main__':
-	__test__()
-	#__fulltest__()
+	#__example_des__()
+	#__example_triple_des__()
+	__fulltest__()
 	#__filetest__()
 	#__profile__()

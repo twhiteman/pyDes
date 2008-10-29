@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name="pyDes",
-      version="1.2",
+      version="1.3",
       description="Pure python implementation of DES and TRIPLE DES encryption algorithm",
       author="Todd Whiteman",
       author_email="twhitema@gmail.com",
