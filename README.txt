@@ -21,6 +21,22 @@ needing a fast des implementation, but rather a handy portable solution ideal
 for small usages. It takes my AMD2000+ machine 1 second per 2.5 kilobyte to
 encrypt or decrypt using the DES method. Thats very SLOW!!
 
+
+#############################################################################
+# 				Installation				    #
+#############################################################################
+
+1. Extract the files from the pyDes archive.
+2. Run the following command:
+   python setup.py install
+
+If you'd like to run the tests, run the command:
+   python test_pydes.py
+
+Note: 	On Unix, you'd run this command from a shell prompt; on Windows, you
+	have to open a command prompt window (``DOS box'') and do it there;
+
+
 #############################################################################
 # 			     About triple DES				    #
 #############################################################################
@@ -46,18 +62,8 @@ The first/third key will be bytes 1 to 8 and the second key bytes 9 to 16.
 Thanks go to:
  - David Broadwell:	Ideas, comments and suggestions
  - Mario Wolff:		Finding and debugging triple des CBC errors.
- - Santiago Palladino:  Enlightening me on the PKCS5 padding technique.
-
-
-#############################################################################
-# 				Installation				    #
-#############################################################################
-
-1. Extract the files from the pyDes archive.
-2. Run the following command: python setup.py install
-
-Note: 	On Unix, you'd run this command from a shell prompt; on Windows, you
-	have to open a command prompt window (``DOS box'') and do it there;
+ - Santiago Palladino:  Providing the PKCS5 padding technique.
+ - Shaya:               Fixing triple des CBC errors with PAD_PKCS5.
 
 
 #############################################################################
