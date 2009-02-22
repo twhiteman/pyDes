@@ -176,12 +176,10 @@ class _baseDes(object):
 			if not pad:
 				raise ValueError("Data must be a multiple of " + str(self.block_size) + " bytes in length. Use padmode=PAD_PKCS5 or set the pad character.")
 			data += (self.block_size - (len(data) % self.block_size)) * pad
-			#print "Len of data: %f" % (len(data) / self.block_size)
 		
 		elif padmode == PAD_PKCS5:
 			pad_len = 8 - (len(data) % self.block_size)
 			data += pad_len * chr(pad_len)
-			#print "Len of data after PAD_PKCS5: %f" % (len(data) / self.block_size)
 
 		return data
 
@@ -200,7 +198,6 @@ class _baseDes(object):
 				# Get the default padding.
 				pad = self.getPadding()
 			if pad:
-				#print "Removing PAD_NORMAL padding"
 				data = data[:-self.block_size] + \
 				       data[-self.block_size:].rstrip(pad)
 
@@ -785,8 +782,6 @@ class triple_des(_baseDes):
 				self.__key3.setIV(iv)
 				result.append(block)
 				i += 8
-			#print ("len of data: %r" % (len(data)))
-			#print ("result: %r" % (result))
 			data = ''.join(result)
 		else:
 			data = self.__key3.crypt(data, DECRYPT)
