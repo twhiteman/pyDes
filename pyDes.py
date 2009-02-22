@@ -98,10 +98,122 @@ PAD_PKCS5 = 2
 # For a good description of the PKCS5 padding technique, see:
 # http://www.faqs.org/rfcs/rfc1423.html
 
+
+# The base class shared by des and triple des.
+class _baseDes(object):
+	def __init__(self, key, mode=ECB, IV=None, pad=None, padmode=PAD_NORMAL):
+		self.block_size = 8
+		# Sanity checking of arguments.
+		if pad and padmode == PAD_PKCS5:
+			raise ValueError("Cannot use a pad character with PAD_PKCS5")
+		if IV and len(IV) != self.block_size:
+			raise ValueError("Invalid Initial Value (IV), must be a multiple of " + str(self.block_size) + " bytes")
+
+		# Set the passed in variables
+		self._mode = mode
+		self._iv = IV
+		self._padding = pad
+		self._padmode = padmode
+
+	def getKey(self):
+		"""getKey() -> string"""
+		return self.__key
+
+	def setKey(self, key):
+		"""Will set the crypting key for this object."""
+		self.__key = key
+
+	def getMode(self):
+		"""getMode() -> pyDes.ECB or pyDes.CBC"""
+		return self._mode
+
+	def setMode(self, mode):
+		"""Sets the type of crypting mode, pyDes.ECB or pyDes.CBC"""
+		self._mode = mode
+
+	def getPadding(self):
+		"""getPadding() -> string of length 1. Padding character."""
+		return self._padding
+
+	def setPadding(self, pad):
+		"""setPadding() -> string of length 1. Padding character."""
+		self._padding = pad
+
+	def getPadMode(self):
+		"""getPadMode() -> pyDes.PAD_NORMAL or pyDes.PAD_PKCS5"""
+		return self._padmode
+		
+	def setPadMode(self, mode):
+		"""Sets the type of padding mode, pyDes.PAD_NORMAL or pyDes.PAD_PKCS5"""
+		self._padmode = mode
+
+	def getIV(self):
+		"""getIV() -> string"""
+		return self._iv
+
+	def setIV(self, IV):
+		"""Will set the Initial Value, used in conjunction with CBC mode"""
+		if not IV or len(IV) != self.block_size:
+			raise ValueError("Invalid Initial Value (IV), must be a multiple of " + str(self.block_size) + " bytes")
+		self._iv = IV
+
+	def _padData(self, data, pad, padmode):
+		# Pad data depending on the mode
+		if padmode is None:
+			# Get the default padding mode.
+			padmode = self.getPadMode()
+		if pad and padmode == PAD_PKCS5:
+			raise ValueError("Cannot use a pad character with PAD_PKCS5")
+
+		if padmode == PAD_NORMAL:
+			if len(data) % self.block_size == 0:
+				# No padding required.
+				return data
+
+			if not pad:
+				# Get the default padding.
+				pad = self.getPadding()
+			if not pad:
+				raise ValueError("Data must be a multiple of " + str(self.block_size) + " bytes in length. Use padmode=PAD_PKCS5 or set the pad character.")
+			data += (self.block_size - (len(data) % self.block_size)) * pad
+			#print "Len of data: %f" % (len(data) / self.block_size)
+		
+		elif padmode == PAD_PKCS5:
+			pad_len = 8 - (len(data) % self.block_size)
+			data += pad_len * chr(pad_len)
+			#print "Len of data after PAD_PKCS5: %f" % (len(data) / self.block_size)
+
+		return data
+
+	def _unpadData(self, data, pad, padmode):
+		# Unpad data depending on the mode.
+		if not data:
+			return data
+		if pad and padmode == PAD_PKCS5:
+			raise ValueError("Cannot use a pad character with PAD_PKCS5")
+		if padmode is None:
+			# Get the default padding mode.
+			padmode = self.getPadMode()
+
+		if padmode == PAD_NORMAL:
+			if not pad:
+				# Get the default padding.
+				pad = self.getPadding()
+			if pad:
+				#print "Removing PAD_NORMAL padding"
+				data = data[:-self.block_size] + \
+				       data[-self.block_size:].rstrip(pad)
+
+		elif padmode == PAD_PKCS5:
+			pad_len = ord(data[-1])
+			data = data[:-pad_len]
+
+		return data
+
 #############################################################################
 # 				    DES					    #
 #############################################################################
-class des:
+class des(_baseDes):
 	"""DES encryption/decrytpion class
 
 	Supports ECB (Electronic Code Book) and CBC (Cypher Block Chaining) modes.
@@ -113,6 +225,11 @@ class des:
 		(Electronic Code Book), pyDes.CBC (Cypher Block Chaining)
 	IV   -> Optional string argument, must be supplied if using CBC mode.
 		Must be 8 bytes in length.
+	pad  -> Optional argument, set the pad character (PAD_NORMAL) to use
+		during all encrypt/decrpt operations done with this instance.
+	padmode -> Optional argument, set the padding mode (PAD_NORMAL or
+		PAD_PKCS5) to use during all encrypt/decrpt operations done
+		with this instance.
 	"""
 
 
@@ -250,21 +367,8 @@ class des:
 		# Sanity checking of arguments.
 		if len(key) != 8:
 			raise ValueError("Invalid DES key size. Key must be exactly 8 bytes long.")
-		if pad and padmode == PAD_PKCS5:
-			raise ValueError("Cannot use a pad character with PAD_PKCS5")
-
+		_baseDes.__init__(self, key, mode, IV, pad, padmode)
 		self.key_size = 8
-		self.block_size = 8
-
-		# Set the passed in variables
-		self.__padding = pad
-		self.__padmode = padmode
-		self.__mode = mode
-		if IV:
-			# Note: setIV will do some additional sanity checking.
-			self.setIV(IV)
-		else:
-			self.__iv = None
 
 		self.L = []
 		self.R = []
@@ -273,49 +377,10 @@ class des:
 
 		self.setKey(key)
 
-
-	def getKey(self):
-		"""getKey() -> string"""
-		return self.__key
-
 	def setKey(self, key):
 		"""Will set the crypting key for this object. Must be 8 bytes."""
-		self.__key = key
+		_baseDes.setKey(self, key)
 		self.__create_sub_keys()
-
-	def getMode(self):
-		"""getMode() -> pyDes.ECB or pyDes.CBC"""
-		return self.__mode
-
-	def setMode(self, mode):
-		"""Sets the type of crypting mode, pyDes.ECB or pyDes.CBC"""
-		self.__mode = mode
-
-	def getPadding(self):
-		"""getPadding() -> string of length 1. Padding character."""
-		return self.__padding
-
-	def setPadding(self, pad):
-		"""setPadding() -> string of length 1. Padding character."""
-		self.__padding = pad
-
-	def getPadMode(self):
-		"""getPadMode() -> pyDes.PAD_NORMAL or pyDes.PAD_PKCS5"""
-		return self.__padmode
-		
-	def setPadMode(self, mode):
-		"""Sets the type of padding mode, pyDes.PAD_NORMAL or pyDes.PAD_PKCS5"""
-		self.__padmode = mode
-
-	def getIV(self):
-		"""getIV() -> string"""
-		return self.__iv
-
-	def setIV(self, IV):
-		"""Will set the Initial Value, used in conjunction with CBC mode"""
-		if not IV or len(IV) != self.block_size:
-			raise ValueError("Invalid Initial Value (IV), must be a multiple of " + str(self.block_size) + " bytes")
-		self.__iv = IV
 
 	def __String_to_BitList(self, data):
 		"""Turn the string data, into a list of bits (1, 0)'s"""
@@ -534,65 +599,12 @@ class des:
 		# Return the full crypted string
 		return ''.join(result)
 
-	def _padData(self, data, pad, padmode):
-		# Pad data depending on the mode
-		if padmode is None:
-			# Get the default padding mode.
-			padmode = self.getPadMode()
-		if pad and padmode == PAD_PKCS5:
-			raise ValueError("Cannot use a pad character with PAD_PKCS5")
-
-		if padmode == PAD_NORMAL:
-			if len(data) % self.block_size == 0:
-				# No padding required.
-				return data
-
-			if not pad:
-				# Get the default padding.
-				pad = self.getPadding()
-			if not pad:
-				raise ValueError("Data must be a multiple of " + str(self.block_size) + " bytes in length. Use padmode=PAD_PKCS5 or set the pad character.")
-			data += (self.block_size - (len(data) % self.block_size)) * pad
-			#print "Len of data: %f" % (len(data) / self.block_size)
-		
-		elif padmode == PAD_PKCS5:
-			pad_len = 8 - (len(data) % self.block_size)
-			data += pad_len * chr(pad_len)
-			#print "Len of data after PAD_PKCS5: %f" % (len(data) / self.block_size)
-
-		return data
-
-	def _unpadData(self, data, pad, padmode):
-		# Unpad data depending on the mode.
-		if not data:
-			return data
-		if pad and padmode == PAD_PKCS5:
-			raise ValueError("Cannot use a pad character with PAD_PKCS5")
-		if padmode is None:
-			# Get the default padding mode.
-			padmode = self.getPadMode()
-
-		if padmode == PAD_NORMAL:
-			if not pad:
-				# Get the default padding.
-				pad = self.getPadding()
-			if pad:
-				#print "Removing PAD_NORMAL padding"
-				data = data[:-self.block_size] + \
-				       data[-self.block_size:].rstrip(pad)
-
-		elif padmode == PAD_PKCS5:
-			pad_len = ord(data[-1])
-			data = data[:-pad_len]
-
-		return data
-
 	def encrypt(self, data, pad='', padmode=None):
 		"""encrypt(data, [pad], [padmode]) -> string
 
 		data : String to be encrypted
 		pad  : Optional argument for encryption padding. Must only be one byte
-		padmode : Padding mode, defaults to PAD_NORMAL if not supplied.
+		padmode : Optional argument for overriding the padding mode.
 
 		The data must be a multiple of 8 bytes and will be encrypted
 		with the already specified key. Data does not have to be a
@@ -608,7 +620,7 @@ class des:
 
 		data : String to be encrypted
 		pad  : Optional argument for decryption padding. Must only be one byte
-		padmode : Padding mode, defaults to PAD_NORMAL if not supplied.
+		padmode : Optional argument for overriding the padding mode.
 
 		The data must be a multiple of 8 bytes and will be decrypted
 		with the already specified key. In PAD_NORMAL mode, if the
@@ -626,7 +638,7 @@ class des:
 #############################################################################
 # 				Triple DES				    #
 #############################################################################
-class triple_des:
+class triple_des(_baseDes):
 	"""Triple DES encryption/decrytpion class
 
 	This algorithm uses the DES-EDE3 (when a 24 byte key is supplied) or
@@ -640,17 +652,15 @@ class triple_des:
 		(Electronic Code Book), pyDes.CBC (Cypher Block Chaining)
 	IV   -> Optional string argument, must be supplied if using CBC mode.
 		Must be 8 bytes in length.
+	pad  -> Optional argument, set the pad character (PAD_NORMAL) to use
+		during all encrypt/decrpt operations done with this instance.
+	padmode -> Optional argument, set the padding mode (PAD_NORMAL or
+		PAD_PKCS5) to use during all encrypt/decrpt operations done
+		with this instance.
 	"""
-	def __init__(self, key, mode=ECB, IV=None):
-		self.block_size = 8
-		self.setMode(mode)
-		self.__padding = ''
-		self.__iv = IV
+	def __init__(self, key, mode=ECB, IV=None, pad=None, padmode=PAD_NORMAL):
+		_baseDes.__init__(self, key, mode, IV, pad, padmode)
 		self.setKey(key)
-
-	def getKey(self):
-		"""getKey() -> string"""
-		return self.__key
 
 	def setKey(self, key):
 		"""Will set the crypting key for this object. Either 16 or 24 bytes long."""
@@ -666,36 +676,49 @@ class triple_des:
 				self.setIV(key[:self.block_size])
 			if len(self.getIV()) != self.block_size:
 				raise ValueError("Invalid IV, must be 8 bytes in length")
-		self.__key1 = des(key[:8], self.getMode(), self.getIV())
-		self.__key2 = des(key[8:16], self.getMode(), self.getIV())
+		self.__key1 = des(key[:8], self._mode, self._iv,
+				  self._padding, self._padmode)
+		self.__key2 = des(key[8:16], self._mode, self._iv,
+				  self._padding, self._padmode)
 		if self.key_size == 16:
 			self.__key3 = self.__key1
 		else:
-			self.__key3 = des(key[16:], self.getMode(), self.getIV())
-		self.__key = key
+			self.__key3 = des(key[16:], self._mode, self._iv,
+					  self._padding, self._padmode)
+		_baseDes.setKey(self, key)
 
-	def getMode(self):
-		"""getMode() -> pyDes.ECB or pyDes.CBC"""
-		return self.__mode
+	# Override setter methods to work on all 3 keys.
 
 	def setMode(self, mode):
 		"""Sets the type of crypting mode, pyDes.ECB or pyDes.CBC"""
-		self.__mode = mode
+		_baseDes.setMode(self, mode)
+		for key in (self.__key1, self.__key2, self.__key3):
+			key.setMode(mode)
 
-	def getIV(self):
-		"""getIV() -> string"""
-		return self.__iv
+	def setPadding(self, pad):
+		"""setPadding() -> string of length 1. Padding character."""
+		_baseDes.setPadding(self, pad)
+		for key in (self.__key1, self.__key2, self.__key3):
+			key.setPadding(pad)
+
+	def setPadMode(self, mode):
+		"""Sets the type of padding mode, pyDes.PAD_NORMAL or pyDes.PAD_PKCS5"""
+		_baseDes.setPadMode(self, mode)
+		for key in (self.__key1, self.__key2, self.__key3):
+			key.setPadMode(mode)
 
 	def setIV(self, IV):
 		"""Will set the Initial Value, used in conjunction with CBC mode"""
-		self.__iv = IV
+		_baseDes.setIV(self, IV)
+		for key in (self.__key1, self.__key2, self.__key3):
+			key.setIV(IV)
 
-	def encrypt(self, data, pad='', padmode=PAD_NORMAL):
+	def encrypt(self, data, pad='', padmode=None):
 		"""encrypt(data, [pad], [padmode]) -> string
 
 		data : String to be encrypted
 		pad  : Optional argument for encryption padding. Must only be one byte
-		padmode : Padding mode, defaults to PAD_NORMAL if not supplied.
+		padmode : Optional argument for overriding the padding mode.
 
 		The data must be a multiple of 8 bytes and will be encrypted
 		with the already specified key. Data does not have to be a
@@ -703,8 +726,10 @@ class triple_des:
 		the padmode is set to PAD_PKCS5, as bytes will then added to
 		ensure the be padded data is a multiple of 8 bytes.
 		"""
+		ENCRYPT = des.ENCRYPT
+		DECRYPT = des.DECRYPT
 		# Pad the data accordingly.
-		data = self.__key1._padData(data, pad, padmode)
+		data = self._padData(data, pad, padmode)
 		if self.getMode() == CBC:
 			self.__key1.setIV(self.getIV())
 			self.__key2.setIV(self.getIV())
@@ -712,9 +737,9 @@ class triple_des:
 			i = 0
 			result = []
 			while i < len(data):
-				block = self.__key1.encrypt(data[i:i+8])
-				block = self.__key2.decrypt(block)
-				block = self.__key3.encrypt(block)
+				block = self.__key1.crypt(data[i:i+8], ENCRYPT)
+				block = self.__key2.crypt(block, DECRYPT)
+				block = self.__key3.crypt(block, ENCRYPT)
 				self.__key1.setIV(block)
 				self.__key2.setIV(block)
 				self.__key3.setIV(block)
@@ -722,16 +747,16 @@ class triple_des:
 				i += 8
 			return ''.join(result)
 		else:
-			data = self.__key1.encrypt(data)
-			data = self.__key2.decrypt(data)
-			return self.__key3.encrypt(data)
+			data = self.__key1.crypt(data, ENCRYPT)
+			data = self.__key2.crypt(data, DECRYPT)
+			return self.__key3.crypt(data, ENCRYPT)
 
 	def decrypt(self, data, pad='', padmode=None):
 		"""decrypt(data, [pad], [padmode]) -> string
 
 		data : String to be encrypted
 		pad  : Optional argument for decryption padding. Must only be one byte
-		padmode : Padding mode, defaults to PAD_NORMAL if not supplied.
+		padmode : Optional argument for overriding the padding mode.
 
 		The data must be a multiple of 8 bytes and will be decrypted
 		with the already specified key. In PAD_NORMAL mode, if the
@@ -742,6 +767,8 @@ class triple_des:
 		padding end markers will be removed from the data after
 		decrypting, no pad character is required for PAD_PKCS5.
 		"""
+		ENCRYPT = des.ENCRYPT
+		DECRYPT = des.DECRYPT
 		if self.getMode() == CBC:
 			self.__key1.setIV(self.getIV())
 			self.__key2.setIV(self.getIV())
@@ -750,17 +777,19 @@ class triple_des:
 			result = []
 			while i < len(data):
 				iv = data[i:i+8]
-				block = self.__key3.decrypt(iv)
-				block = self.__key2.encrypt(block)
-				block = self.__key1.decrypt(block)
+				block = self.__key3.crypt(iv,    DECRYPT)
+				block = self.__key2.crypt(block, ENCRYPT)
+				block = self.__key1.crypt(block, DECRYPT)
 				self.__key1.setIV(iv)
 				self.__key2.setIV(iv)
 				self.__key3.setIV(iv)
 				result.append(block)
 				i += 8
+			#print ("len of data: %r" % (len(data)))
+			#print ("result: %r" % (result))
 			data = ''.join(result)
 		else:
-			data = self.__key3.decrypt(data)
-			data = self.__key2.encrypt(data)
-			data = self.__key1.decrypt(data)
-		return self.__key1._unpadData(data, pad, padmode)
+			data = self.__key3.crypt(data, DECRYPT)
+			data = self.__key2.crypt(data, ENCRYPT)
+			data = self.__key1.crypt(data, DECRYPT)
+		return self._unpadData(data, pad, padmode)
