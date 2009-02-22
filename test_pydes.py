@@ -141,7 +141,13 @@ def _fulltest_():
 	d = k.encrypt("String to Pad", padmode=PAD_PKCS5)
 	if k.decrypt(d, padmode=PAD_PKCS5) != "String to Pad":
 		print ("'%s' != 'String to Pad'" % k.decrypt(d))
-		print ("Test 5:  Error: Unencypted data does not match original data")
+		print ("Test 5a: Error: Unencypted data does not match original data")
+	# Try same with padmode set on the class instance.
+	k = des("\r\n\tkey\r\n", padmode=PAD_PKCS5)
+	d = k.encrypt("String to Pad", )
+	if k.decrypt(d) != "String to Pad":
+		print ("'%s' != 'String to Pad'" % k.decrypt(d))
+		print ("Test 5b: Error: Unencypted data does not match original data")
 	else:
 		print ("Test 5:  Successful")
 
