@@ -92,9 +92,9 @@ def _filetest_():
 	
 def _profile_():
 	try:
-		import profile
-	except:
 		import cProfile as profile
+	except:
+		import profile
 	profile.run('_fulltest_()')
 	#profile.run('_filetest_()')
 
@@ -106,25 +106,27 @@ def _fulltest_():
 
 	t = time()
 
+	data = "DES encryption algorithm".encode('ascii')
 	k = des("\0\0\0\0\0\0\0\0", CBC, "\0\0\0\0\0\0\0\0")
-	d = k.encrypt("DES encryption algorithm")
-	if k.decrypt(d) != "DES encryption algorithm":
-		print ("Test 1:  Error: Unencypted data block does not match start data")
+	d = k.encrypt(data)
+	if k.decrypt(d) != data:
+		print ("Test 1:  Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 1:  Successful")
 
+	data = "Default string of text".encode('ascii')
 	k = des("\0\0\0\0\0\0\0\0", CBC, "\0\0\0\0\0\0\0\0")
-	d = k.encrypt("Default string of text", '*')
-	if k.decrypt(d, "*") != "Default string of text":
-		print ("Test 2:  Error: Unencypted data block does not match start data")
+	d = k.encrypt(data, "*")
+	if k.decrypt(d, "*") != data:
+		print ("Test 2:  Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 2:  Successful")
 
+	data = "String to Pad".encode('ascii')
 	k = des("\r\n\tABC\r\n")
-	d = k.encrypt("String to Pad", '*')
-	if k.decrypt(d) != "String to Pad***":
-		print ("'%s'" % k.decrypt(d))
-		print ("Test 3:  Error: Unencypted data block does not match start data")
+	d = k.encrypt(data, "*")
+	if k.decrypt(d, "*") != data:
+		print ("Test 3:  Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 3:  Successful")
 
@@ -137,17 +139,16 @@ def _fulltest_():
 	else:
 		print ("Test 4:  Successful")
 
+	data = "String to Pad".encode('ascii')
 	k = des("\r\n\tkey\r\n")
-	d = k.encrypt("String to Pad", padmode=PAD_PKCS5)
-	if k.decrypt(d, padmode=PAD_PKCS5) != "String to Pad":
-		print ("'%s' != 'String to Pad'" % k.decrypt(d))
-		print ("Test 5a: Error: Unencypted data does not match original data")
+	d = k.encrypt(data, padmode=PAD_PKCS5)
+	if k.decrypt(d, padmode=PAD_PKCS5) != data:
+		print ("Test 5a: Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	# Try same with padmode set on the class instance.
 	k = des("\r\n\tkey\r\n", padmode=PAD_PKCS5)
-	d = k.encrypt("String to Pad", )
-	if k.decrypt(d) != "String to Pad":
-		print ("'%s' != 'String to Pad'" % k.decrypt(d))
-		print ("Test 5b: Error: Unencypted data does not match original data")
+	d = k.encrypt(data)
+	if k.decrypt(d) != data:
+		print ("Test 5b: Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 5:  Successful")
 
@@ -180,60 +181,60 @@ def _fulltest_():
 		print ("Test 9:  Successful")
 
 	k = triple_des("\r\n\tkey\rIsGoodKey")
-	d = k.encrypt("String to Pad", padmode=PAD_PKCS5)
-	if k.decrypt(d, padmode=PAD_PKCS5) != "String to Pad":
-		print ("'%s' != 'String to Pad'" % k.decrypt(d))
-		print ("Test 10: Error: Unencypted data does not match original data")
+	data = "String to Pad".encode('ascii')
+	d = k.encrypt(data, padmode=PAD_PKCS5)
+	if k.decrypt(d, padmode=PAD_PKCS5) != data:
+		print ("Test 10: Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 10: Successful")
 
 	k = triple_des("\r\n\tkey\rIsGoodKey")
-	d = k.encrypt("String not need Padding.", padmode=PAD_PKCS5)
-	if k.decrypt(d, padmode=PAD_PKCS5) != "String not need Padding.":
-		print ("'%s' != 'String not need Padding.'" % k.decrypt(d))
-		print ("Test 11: Error: Unencypted data does not match original data")
+	data = "String not need Padding.".encode('ascii')
+	d = k.encrypt(data, padmode=PAD_PKCS5)
+	if k.decrypt(d, padmode=PAD_PKCS5) != data:
+		print ("Test 11: Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 11: Successful")
 
 	# Test PAD_PKCS5 with CBC encryption mode.
 
 	k = des("IGoodKey", mode=CBC, IV="\0\1\2\3\4\5\6\7")
-	d = k.encrypt("String to Pad", padmode=PAD_PKCS5)
-	if k.decrypt(d, padmode=PAD_PKCS5) != "String to Pad":
-		print ("'%s' != 'String to Pad'" % k.decrypt(d))
-		print ("Test 12: Error: Unencypted data does not match original data")
+	data = "String to Pad".encode('ascii')
+	d = k.encrypt(data, padmode=PAD_PKCS5)
+	if k.decrypt(d, padmode=PAD_PKCS5) != data:
+		print ("Test 12: Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 12: Successful")
 
 	k = des("IGoodKey", mode=CBC, IV="\0\1\2\3\4\5\6\7")
-	d = k.encrypt("String not need Padding.", padmode=PAD_PKCS5)
-	if k.decrypt(d, padmode=PAD_PKCS5) != "String not need Padding.":
-		print ("'%s' != 'String not need Padding.'" % k.decrypt(d))
-		print ("Test 13: Error: Unencypted data does not match original data")
+	data = "String not need Padding.".encode('ascii')
+	d = k.encrypt(data, padmode=PAD_PKCS5)
+	if k.decrypt(d, padmode=PAD_PKCS5) != data:
+		print ("Test 13: Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 13: Successful")
 
 	k = triple_des("\r\n\tkey\rIsGoodKey", mode=CBC, IV="\0\1\2\3\4\5\6\7")
-	d = k.encrypt("String to Pad", padmode=PAD_PKCS5)
-	if k.decrypt(d, padmode=PAD_PKCS5) != "String to Pad":
-		print ("'%s' != 'String to Pad'" % k.decrypt(d))
-		print ("Test 14: Error: Unencypted data does not match original data")
+	data = "String to Pad".encode('ascii')
+	d = k.encrypt(data, padmode=PAD_PKCS5)
+	if k.decrypt(d, padmode=PAD_PKCS5) != data:
+		print ("Test 14: Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 14: Successful")
 
 	k = triple_des("\r\n\tkey\rIsGoodKey", mode=CBC, IV="\0\1\2\3\4\5\6\7")
-	d = k.encrypt("String not need Padding.", padmode=PAD_PKCS5)
-	if k.decrypt(d, padmode=PAD_PKCS5) != "String not need Padding.":
-		print ("'%s' != 'String not need Padding.'" % k.decrypt(d))
-		print ("Test 15: Error: Unencypted data does not match original data")
+	data = "String not need Padding.".encode('ascii')
+	d = k.encrypt(data, padmode=PAD_PKCS5)
+	if k.decrypt(d, padmode=PAD_PKCS5) != data:
+		print ("Test 15: Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 15: Successful")
 
 	k = triple_des("\r\n\tkey\rIsGoodKey", mode=CBC, IV="\0\1\2\3\4\5\6\7", padmode=PAD_PKCS5)
-	d = k.encrypt("String to Pad.")
-	if k.decrypt(d) != "String to Pad.":
-		print ("'%s' != 'String to Pad.'" % k.decrypt(d))
-		print ("Test 16: Error: Unencypted data does not match original data")
+	data = "String to Pad".encode('ascii')
+	d = k.encrypt(data)
+	if k.decrypt(d) != data:
+		print ("Test 16: Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
 	else:
 		print ("Test 16: Successful")
 

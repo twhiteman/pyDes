@@ -3,13 +3,13 @@
 #############################################################################
 
 Author:   Todd Whiteman
-Date:     28th October, 2008
-Verion:   1.3
+Date:     16th March, 2009
+Verion:   2.0.0
 License:  Public Domain - free to do as you wish
 Homepage: http://twhiteman.netfirms.com/des.html
 
-This algorithm is a pure python implementation of the DES algorithm.
-It is in pure python to avoid portability issues, since most DES 
+This is a pure python implementation of the DES encryption algorithm.
+It's pure python to avoid portability issues, since most DES 
 implementations are programmed in C (for performance reasons).
 
 Triple DES class is also implemented, utilising the DES base. Triple DES
@@ -75,12 +75,12 @@ Class initialization
 pyDes.des(key, [mode], [IV], [pad], [padmode])
 pyDes.triple_des(key, [mode], [IV], [pad], [padmode])
 
-key     -> String containing the encryption key. 8 bytes for DES, 16 or 24 bytes
+key     -> Bytes containing the encryption key. 8 bytes for DES, 16 or 24 bytes
 	   for Triple DES
 mode    -> Optional argument for encryption type, can be either
 	   pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
-IV      -> Optional argument, must be supplied if using CBC mode. Length must
-	   be 8 bytes
+IV      -> Optional Initial Value bytes, must be supplied if using CBC mode.
+	   Length must be 8 bytes.
 pad     -> Optional argument, set the pad character (PAD_NORMAL) to use during
 	   all encrypt/decrpt operations done with this instance.
 padmode -> Optional argument, set the padding mode (PAD_NORMAL or PAD_PKCS5)
@@ -95,12 +95,12 @@ Common methods
 encrypt(data, [pad], [padmode])
 decrypt(data, [pad], [padmode])
 
-data    -> String to be encrypted/decrypted
+data    -> Bytes to be encrypted/decrypted
 pad     -> Optional argument. Only when using padmode of PAD_NORMAL. For
-	   encryption, adds this characters to the end of the data string when
+	   encryption, adds this characters to the end of the data block when
 	   data is not a multiple of 8 bytes. For decryption, will remove the
 	   trailing characters that match this pad character from the last 8
-	   bytes of the unencrypted data string.
+	   bytes of the unencrypted data block.
 padmode -> Optional argument, set the padding mode, must be one of PAD_NORMAL
 	   or PAD_PKCS5). Defaults to PAD_NORMAL.
 	  
@@ -109,15 +109,15 @@ Example
 -------
 from pyDes import *
 
-data = "Please encrypt my string"
+data = "Please encrypt my data"
 k = des("DESCRYPT", CBC, "\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
+# For Python3, you'll need to use bytes, i.e.:
+#   data = b"Please encrypt my data"
+#   k = des(b"DESCRYPT", CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
 d = k.encrypt(data)
-print "Encypted string: %r" % d
-print "Decypted string: %r" % k.decrypt(d)
-
-data = "Please encrypt me"
-k = des("DESCRYPT")
-assert k.decrypt(k.encrypt(data, padmode=PAD_PKCS5), padmode=PAD_PKCS5) == data
+print "Encrypted: %r" % d
+print "Decrypted: %r" % k.decrypt(d)
+assert k.decrypt(d, padmode=PAD_PKCS5) == data
 
 
 See the module source (pyDes.py) for more examples of use.

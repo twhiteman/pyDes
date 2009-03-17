@@ -21,22 +21,22 @@
               				<td>
 <table>
     <tr><td><b>Author:</b></td><td><a href="mailto:twhiteman@users.sourceforge.net">Todd Whiteman</a></td></tr>
-	<tr><td><b>Issue Date:</b></td><td>14th November, 2008</td></tr>
-	<tr><td><b>Version:</b></td><td>1.3.1</td></tr>
+	<tr><td><b>Issue Date:</b></td><td>16th March, 2009</td></tr>
+	<tr><td><b>Version:</b></td><td>2.0.0</td></tr>
 	<tr><td><b>Compatibility:</b></td><td>Requires Python 2.2 or higher, an older Python 1.5.2 compatible module can be found in the <a href="http://pydes.cvs.sourceforge.net/pydes/pyDes/">CVS source</a>.<br/></td></tr>
 	<tr><td>&nbsp;</td></tr>
-	<tr><td>Download (Windows):</td><td> <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.3.1.zip?download">pyDes-1.3.1.zip</a></td></tr>
-	<tr><td>Download (Unix):</td><td> <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.3.1.tar.gz?download">pyDes-1.3.1.tar.gz</a></td></tr>
+	<tr><td>Download (Windows):</td><td> <a href="http://prdownloads.sourceforge.net/pydes/pyDes-2.0.0.zip?download">pyDes-2.0.0.zip</a></td></tr>
+	<tr><td>Download (Unix):</td><td> <a href="http://prdownloads.sourceforge.net/pydes/pyDes-2.0.0.tar.gz?download">pyDes-2.0.0.tar.gz</a></td></tr>
 	<tr><td>&nbsp;</td></tr>
 	<tr><td><b>License:</b></td><td>Free - Public Domain</td></tr>
 	<tr><td><b>Source code:</b></td><td><a href="http://sourceforge.net/projects/pydes/">SourceForge: pyDes</a></td></tr>
-	<tr><td><b>Last updated:</b></td><td>14th November, 2008</td></tr>
+	<tr><td><b>Last updated:</b></td><td>16th March, 2009</td></tr>
 </table>
 
 <br>
 <h2>About pyDES</h2>
 <p>
-This algorithm is a pure python implementation of the DES algorithm.
+This is a pure python implementation of the DES encryption algorithm.
 It is in pure python to avoid portability issues, since most DES 
 implementations are programmed in C (for performance reasons).
 </p>
@@ -104,12 +104,12 @@ Class initialization
 pyDes.des(key, [mode], [IV], [pad], [padmode])
 pyDes.triple_des(key, [mode], [IV], [pad], [padmode])
 
-key     -> String containing the encryption key. 8 bytes for DES, 16 or 24 bytes
+key     -> Bytes containing the encryption key. 8 bytes for DES, 16 or 24 bytes
 	   for Triple DES
 mode    -> Optional argument for encryption type, can be either
 	   pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
-IV      -> Optional argument, must be supplied if using CBC mode. Length must
-	   be 8 bytes
+IV      -> Optional Initial Value bytes, must be supplied if using CBC mode.
+	   Length must be 8 bytes.
 pad     -> Optional argument, set the pad character (PAD_NORMAL) to use during
 	   all encrypt/decrpt operations done with this instance.
 padmode -> Optional argument, set the padding mode (PAD_NORMAL or PAD_PKCS5)
@@ -124,12 +124,12 @@ Common methods
 encrypt(data, [pad], [padmode])
 decrypt(data, [pad], [padmode])
 
-data    -> String to be encrypted/decrypted
+data    -> Bytes to be encrypted/decrypted
 pad     -> Optional argument. Only when using padmode of PAD_NORMAL. For
-	   encryption, adds this characters to the end of the data string when
+	   encryption, adds this characters to the end of the data block when
 	   data is not a multiple of 8 bytes. For decryption, will remove the
 	   trailing characters that match this pad character from the last 8
-	   bytes of the unencrypted data string.
+	   bytes of the unencrypted data block.
 padmode -> Optional argument, set the padding mode, must be one of PAD_NORMAL
 	   or PAD_PKCS5). Defaults to PAD_NORMAL.
 	  
@@ -138,15 +138,15 @@ Example
 -------
 from pyDes import *
 
-data = "Please encrypt my string"
+data = "Please encrypt my data"
 k = des("DESCRYPT", CBC, "\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
+# For Python3, you'll need to use bytes, i.e.:
+#   data = b"Please encrypt my data"
+#   k = des(b"DESCRYPT", CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
 d = k.encrypt(data)
-print "Encypted string: %r" % d
-print "Decypted string: %r" % k.decrypt(d)
-
-data = "Please encrypt me"
-k = des("DESCRYPT")
-assert k.decrypt(k.encrypt(data, padmode=PAD_PKCS5), padmode=PAD_PKCS5) == data
+print "Encrypted: %r" % d
+print "Decrypted: %r" % k.decrypt(d)
+assert k.decrypt(d, padmode=PAD_PKCS5) == data
 
 
 
@@ -159,8 +159,12 @@ Note: This code was not written for high-end systems needing a fast
 
 <h2>Older pyDES versions</h2>
 <p>
-Download (Windows): <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.2.zip?download">pyDes-1.3.zip</a><br>
-Download (Unix):    <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.2.tar.gz?download">pyDes-1.3.tar.gz</a><br>
+Download (Windows): <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.3.1.zip?download">pyDes-1.3.1.zip</a><br>
+Download (Unix):    <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.3.1.tar.gz?download">pyDes-1.3.1.tar.gz</a><br>
+</p>
+<p>
+Download (Windows): <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.3.zip?download">pyDes-1.3.zip</a><br>
+Download (Unix):    <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.3.tar.gz?download">pyDes-1.3.tar.gz</a><br>
 </p>
 <p>
 Download (Windows): <a href="http://prdownloads.sourceforge.net/pydes/pyDes-1.2.zip?download">pyDes-1.2.zip</a><br>

@@ -3,13 +3,13 @@
 #############################################################################
 
 # Author:   Todd Whiteman
-# Date:     28th October, 2008
-# Verion:   1.3
+# Date:     16th March, 2009
+# Verion:   2.0.0
 # License:  Public Domain - free to do as you wish
 # Homepage: http://twhiteman.netfirms.com/des.html
 #
-# This algorithm is a pure python implementation of the DES algorithm.
-# It is in pure python to avoid portability issues, since most DES 
+# This is a pure python implementation of the DES encryption algorithm.
+# It's pure python to avoid portability issues, since most DES 
 # implementations are programmed in C (for performance reasons).
 #
 # Triple DES class is also implemented, utilising the DES base. Triple DES
@@ -31,12 +31,12 @@ Class initialization
 pyDes.des(key, [mode], [IV], [pad], [padmode])
 pyDes.triple_des(key, [mode], [IV], [pad], [padmode])
 
-key     -> String containing the encryption key. 8 bytes for DES, 16 or 24 bytes
+key     -> Bytes containing the encryption key. 8 bytes for DES, 16 or 24 bytes
 	   for Triple DES
 mode    -> Optional argument for encryption type, can be either
 	   pyDes.ECB (Electronic Code Book) or pyDes.CBC (Cypher Block Chaining)
-IV      -> Optional argument, must be supplied if using CBC mode. Length must
-	   be 8 bytes
+IV      -> Optional Initial Value bytes, must be supplied if using CBC mode.
+	   Length must be 8 bytes.
 pad     -> Optional argument, set the pad character (PAD_NORMAL) to use during
 	   all encrypt/decrpt operations done with this instance.
 padmode -> Optional argument, set the padding mode (PAD_NORMAL or PAD_PKCS5)
@@ -51,12 +51,12 @@ Common methods
 encrypt(data, [pad], [padmode])
 decrypt(data, [pad], [padmode])
 
-data    -> String to be encrypted/decrypted
+data    -> Bytes to be encrypted/decrypted
 pad     -> Optional argument. Only when using padmode of PAD_NORMAL. For
-	   encryption, adds this characters to the end of the data string when
+	   encryption, adds this characters to the end of the data block when
 	   data is not a multiple of 8 bytes. For decryption, will remove the
 	   trailing characters that match this pad character from the last 8
-	   bytes of the unencrypted data string.
+	   bytes of the unencrypted data block.
 padmode -> Optional argument, set the padding mode, must be one of PAD_NORMAL
 	   or PAD_PKCS5). Defaults to PAD_NORMAL.
 	  
@@ -65,15 +65,15 @@ Example
 -------
 from pyDes import *
 
-data = "Please encrypt my string"
+data = "Please encrypt my data"
 k = des("DESCRYPT", CBC, "\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
+# For Python3, you'll need to use bytes, i.e.:
+#   data = b"Please encrypt my data"
+#   k = des(b"DESCRYPT", CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
 d = k.encrypt(data)
-print "Encypted string: %r" % d
-print "Decypted string: %r" % k.decrypt(d)
-
-data = "Please encrypt me"
-k = des("DESCRYPT")
-assert k.decrypt(k.encrypt(data, padmode=PAD_PKCS5), padmode=PAD_PKCS5) == data
+print "Encrypted: %r" % d
+print "Decrypted: %r" % k.decrypt(d)
+assert k.decrypt(d, padmode=PAD_PKCS5) == data
 
 
 See the module source (pyDes.py) for more examples of use.
@@ -83,6 +83,11 @@ Note: This code was not written for high-end systems needing a fast
       implementation, but rather a handy portable solution with small usage.
 
 """
+
+import sys
+
+# _pythonMajorVersion is used to handle Python2 and Python3 differences.
+_pythonMajorVersion = sys.version_info[0]
 
 # Modes of crypting / cyphering
 ECB =	0
@@ -98,10 +103,13 @@ PAD_PKCS5 = 2
 # For a good description of the PKCS5 padding technique, see:
 # http://www.faqs.org/rfcs/rfc1423.html
 
-
 # The base class shared by des and triple des.
 class _baseDes(object):
-	def __init__(self, key, mode=ECB, IV=None, pad=None, padmode=PAD_NORMAL):
+	def __init__(self, mode=ECB, IV=None, pad=None, padmode=PAD_NORMAL):
+		if IV:
+			IV = self._guardAgainstUnicode(IV)
+		if pad:
+			pad = self._guardAgainstUnicode(pad)
 		self.block_size = 8
 		# Sanity checking of arguments.
 		if pad and padmode == PAD_PKCS5:
@@ -116,11 +124,12 @@ class _baseDes(object):
 		self._padmode = padmode
 
 	def getKey(self):
-		"""getKey() -> string"""
+		"""getKey() -> bytes"""
 		return self.__key
 
 	def setKey(self, key):
 		"""Will set the crypting key for this object."""
+		key = self._guardAgainstUnicode(key)
 		self.__key = key
 
 	def getMode(self):
@@ -132,11 +141,13 @@ class _baseDes(object):
 		self._mode = mode
 
 	def getPadding(self):
-		"""getPadding() -> string of length 1. Padding character."""
+		"""getPadding() -> bytes of length 1. Padding character."""
 		return self._padding
 
 	def setPadding(self, pad):
-		"""setPadding() -> string of length 1. Padding character."""
+		"""setPadding() -> bytes of length 1. Padding character."""
+		if pad is not None:
+			pad = self._guardAgainstUnicode(pad)
 		self._padding = pad
 
 	def getPadMode(self):
@@ -148,13 +159,14 @@ class _baseDes(object):
 		self._padmode = mode
 
 	def getIV(self):
-		"""getIV() -> string"""
+		"""getIV() -> bytes"""
 		return self._iv
 
 	def setIV(self, IV):
 		"""Will set the Initial Value, used in conjunction with CBC mode"""
 		if not IV or len(IV) != self.block_size:
 			raise ValueError("Invalid Initial Value (IV), must be a multiple of " + str(self.block_size) + " bytes")
+		IV = self._guardAgainstUnicode(IV)
 		self._iv = IV
 
 	def _padData(self, data, pad, padmode):
@@ -179,7 +191,10 @@ class _baseDes(object):
 		
 		elif padmode == PAD_PKCS5:
 			pad_len = 8 - (len(data) % self.block_size)
-			data += pad_len * chr(pad_len)
+			if _pythonMajorVersion < 3:
+				data += pad_len * chr(pad_len)
+			else:
+				data += bytes([pad_len] * pad_len)
 
 		return data
 
@@ -202,9 +217,28 @@ class _baseDes(object):
 				       data[-self.block_size:].rstrip(pad)
 
 		elif padmode == PAD_PKCS5:
-			pad_len = ord(data[-1])
+			if _pythonMajorVersion < 3:
+				pad_len = ord(data[-1])
+			else:
+				pad_len = data[-1]
 			data = data[:-pad_len]
 
+		return data
+
+	def _guardAgainstUnicode(self, data):
+		# Only accept byte strings or ascii unicode values, otherwise
+		# there is no way to correctly decode the data into bytes.
+		if _pythonMajorVersion < 3:
+			if isinstance(data, unicode):
+				raise ValueError("pyDes can only work with bytes, not Unicode strings.")
+		else:
+			if isinstance(data, str):
+				# Only accept ascii unicode values.
+				try:
+					return data.encode('ascii')
+				except UnicodeEncodeError:
+					pass
+				raise ValueError("pyDes can only work with encoded strings, not Unicode.")
 		return data
 
 #############################################################################
@@ -217,10 +251,10 @@ class des(_baseDes):
 
 	pyDes.des(key,[mode], [IV])
 
-	key  -> The encryption key string, must be exactly 8 bytes
+	key  -> Bytes containing the encryption key, must be exactly 8 bytes
 	mode -> Optional argument for encryption type, can be either pyDes.ECB
 		(Electronic Code Book), pyDes.CBC (Cypher Block Chaining)
-	IV   -> Optional string argument, must be supplied if using CBC mode.
+	IV   -> Optional Initial Value bytes, must be supplied if using CBC mode.
 		Must be 8 bytes in length.
 	pad  -> Optional argument, set the pad character (PAD_NORMAL) to use
 		during all encrypt/decrpt operations done with this instance.
@@ -364,7 +398,7 @@ class des(_baseDes):
 		# Sanity checking of arguments.
 		if len(key) != 8:
 			raise ValueError("Invalid DES key size. Key must be exactly 8 bytes long.")
-		_baseDes.__init__(self, key, mode, IV, pad, padmode)
+		_baseDes.__init__(self, mode, IV, pad, padmode)
 		self.key_size = 8
 
 		self.L = []
@@ -381,12 +415,15 @@ class des(_baseDes):
 
 	def __String_to_BitList(self, data):
 		"""Turn the string data, into a list of bits (1, 0)'s"""
+		if _pythonMajorVersion < 3:
+			# Turn the strings into integers. Python 3 uses a bytes
+			# class, which already has this behaviour.
+			data = [ord(c) for c in data]
 		l = len(data) * 8
 		result = [0] * l
 		pos = 0
-		for c in data:
+		for ch in data:
 			i = 7
-			ch = ord(c)
 			while i >= 0:
 				if ch & (1 << i) != 0:
 					result[pos] = 1
@@ -399,22 +436,25 @@ class des(_baseDes):
 
 	def __BitList_to_String(self, data):
 		"""Turn the list of bits -> data, into a string"""
-		result = ''
+		result = []
 		pos = 0
 		c = 0
 		while pos < len(data):
 			c += data[pos] << (7 - (pos % 8))
 			if (pos % 8) == 7:
-				result += chr(c)
+				result.append(c)
 				c = 0
 			pos += 1
 
-		return result
+		if _pythonMajorVersion < 3:
+			return ''.join([ chr(c) for c in result ])
+		else:
+			return bytes(result)
 
 	def __permutate(self, table, block):
 		"""Permutate this block with the specified table"""
-		return map(lambda x: block[x], table)
-			
+		return list(map(lambda x: block[x], table))
+	
 	# Transform the secret key, so that it is ready for data processing
 	# Create the 16 subkeys, K[1] - K[16]
 	def __create_sub_keys(self):
@@ -466,7 +506,7 @@ class des(_baseDes):
 			self.R = self.__permutate(des.__expansion_table, self.R)
 
 			# Exclusive or R[i - 1] with K[i], create B[1] to B[8] whilst here
-			self.R = map(lambda x, y: x ^ y, self.R, self.Kn[iteration])
+			self.R = list(map(lambda x, y: x ^ y, self.R, self.Kn[iteration]))
 			B = [self.R[:6], self.R[6:12], self.R[12:18], self.R[18:24], self.R[24:30], self.R[30:36], self.R[36:42], self.R[42:]]
 			# Optimization: Replaced below commented code with above
 			#j = 0
@@ -502,7 +542,7 @@ class des(_baseDes):
 			self.R = self.__permutate(des.__p, Bn)
 
 			# Xor with L[i - 1]
-			self.R = map(lambda x, y: x ^ y, self.R, self.L)
+			self.R = list(map(lambda x, y: x ^ y, self.R, self.L))
 			# Optimization: This now replaces the below commented code
 			#j = 0
 			#while j < len(self.R):
@@ -563,7 +603,7 @@ class des(_baseDes):
 			# Xor with IV if using CBC mode
 			if self.getMode() == CBC:
 				if crypt_type == des.ENCRYPT:
-					block = map(lambda x, y: x ^ y, block, iv)
+					block = list(map(lambda x, y: x ^ y, block, iv))
 					#j = 0
 					#while j < len(block):
 					#	block[j] = block[j] ^ iv[j]
@@ -572,7 +612,7 @@ class des(_baseDes):
 				processed_block = self.__des_crypt(block, crypt_type)
 
 				if crypt_type == des.DECRYPT:
-					processed_block = map(lambda x, y: x ^ y, processed_block, iv)
+					processed_block = list(map(lambda x, y: x ^ y, processed_block, iv))
 					#j = 0
 					#while j < len(processed_block):
 					#	processed_block[j] = processed_block[j] ^ iv[j]
@@ -594,12 +634,15 @@ class des(_baseDes):
 		# print "Lines: %d, cached: %d" % (lines, cached)
 
 		# Return the full crypted string
-		return ''.join(result)
+		if _pythonMajorVersion < 3:
+			return ''.join(result)
+		else:
+			return bytes.fromhex('').join(result)
 
-	def encrypt(self, data, pad='', padmode=None):
-		"""encrypt(data, [pad], [padmode]) -> string
+	def encrypt(self, data, pad=None, padmode=None):
+		"""encrypt(data, [pad], [padmode]) -> bytes
 
-		data : String to be encrypted
+		data : Bytes to be encrypted
 		pad  : Optional argument for encryption padding. Must only be one byte
 		padmode : Optional argument for overriding the padding mode.
 
@@ -609,24 +652,30 @@ class des(_baseDes):
 		the padmode is set to PAD_PKCS5, as bytes will then added to
 		ensure the be padded data is a multiple of 8 bytes.
 		"""
+		data = self._guardAgainstUnicode(data)
+		if pad is not None:
+			pad = self._guardAgainstUnicode(pad)
 		data = self._padData(data, pad, padmode)
 		return self.crypt(data, des.ENCRYPT)
 
-	def decrypt(self, data, pad='', padmode=None):
-		"""decrypt(data, [pad], [padmode]) -> string
+	def decrypt(self, data, pad=None, padmode=None):
+		"""decrypt(data, [pad], [padmode]) -> bytes
 
-		data : String to be encrypted
+		data : Bytes to be encrypted
 		pad  : Optional argument for decryption padding. Must only be one byte
 		padmode : Optional argument for overriding the padding mode.
 
 		The data must be a multiple of 8 bytes and will be decrypted
 		with the already specified key. In PAD_NORMAL mode, if the
-		optional padding character is supplied, then the un-encypted
+		optional padding character is supplied, then the un-encrypted
 		data will have the padding characters removed from the end of
-		the string. This pad removal only occurs on the last 8 bytes of
+		the bytes. This pad removal only occurs on the last 8 bytes of
 		the data (last data block). In PAD_PKCS5 mode, the special
 		padding end markers will be removed from the data after decrypting.
 		"""
+		data = self._guardAgainstUnicode(data)
+		if pad is not None:
+			pad = self._guardAgainstUnicode(pad)
 		data = self.crypt(data, des.DECRYPT)
 		return self._unpadData(data, pad, padmode)
 
@@ -644,10 +693,11 @@ class triple_des(_baseDes):
 
 	pyDes.des(key, [mode], [IV])
 
-	key  -> The encryption key string, must be either 16 or 24 bytes long
+	key  -> Bytes containing the encryption key, must be either 16 or
+	        24 bytes long
 	mode -> Optional argument for encryption type, can be either pyDes.ECB
 		(Electronic Code Book), pyDes.CBC (Cypher Block Chaining)
-	IV   -> Optional string argument, must be supplied if using CBC mode.
+	IV   -> Optional Initial Value bytes, must be supplied if using CBC mode.
 		Must be 8 bytes in length.
 	pad  -> Optional argument, set the pad character (PAD_NORMAL) to use
 		during all encrypt/decrpt operations done with this instance.
@@ -656,7 +706,7 @@ class triple_des(_baseDes):
 		with this instance.
 	"""
 	def __init__(self, key, mode=ECB, IV=None, pad=None, padmode=PAD_NORMAL):
-		_baseDes.__init__(self, key, mode, IV, pad, padmode)
+		_baseDes.__init__(self, mode, IV, pad, padmode)
 		self.setKey(key)
 
 	def setKey(self, key):
@@ -693,7 +743,7 @@ class triple_des(_baseDes):
 			key.setMode(mode)
 
 	def setPadding(self, pad):
-		"""setPadding() -> string of length 1. Padding character."""
+		"""setPadding() -> bytes of length 1. Padding character."""
 		_baseDes.setPadding(self, pad)
 		for key in (self.__key1, self.__key2, self.__key3):
 			key.setPadding(pad)
@@ -710,10 +760,10 @@ class triple_des(_baseDes):
 		for key in (self.__key1, self.__key2, self.__key3):
 			key.setIV(IV)
 
-	def encrypt(self, data, pad='', padmode=None):
-		"""encrypt(data, [pad], [padmode]) -> string
+	def encrypt(self, data, pad=None, padmode=None):
+		"""encrypt(data, [pad], [padmode]) -> bytes
 
-		data : String to be encrypted
+		data : bytes to be encrypted
 		pad  : Optional argument for encryption padding. Must only be one byte
 		padmode : Optional argument for overriding the padding mode.
 
@@ -725,6 +775,9 @@ class triple_des(_baseDes):
 		"""
 		ENCRYPT = des.ENCRYPT
 		DECRYPT = des.DECRYPT
+		data = self._guardAgainstUnicode(data)
+		if pad is not None:
+			pad = self._guardAgainstUnicode(pad)
 		# Pad the data accordingly.
 		data = self._padData(data, pad, padmode)
 		if self.getMode() == CBC:
@@ -742,30 +795,36 @@ class triple_des(_baseDes):
 				self.__key3.setIV(block)
 				result.append(block)
 				i += 8
-			return ''.join(result)
+			if _pythonMajorVersion < 3:
+				return ''.join(result)
+			else:
+				return bytes.fromhex('').join(result)
 		else:
 			data = self.__key1.crypt(data, ENCRYPT)
 			data = self.__key2.crypt(data, DECRYPT)
 			return self.__key3.crypt(data, ENCRYPT)
 
-	def decrypt(self, data, pad='', padmode=None):
-		"""decrypt(data, [pad], [padmode]) -> string
+	def decrypt(self, data, pad=None, padmode=None):
+		"""decrypt(data, [pad], [padmode]) -> bytes
 
-		data : String to be encrypted
+		data : bytes to be encrypted
 		pad  : Optional argument for decryption padding. Must only be one byte
 		padmode : Optional argument for overriding the padding mode.
 
 		The data must be a multiple of 8 bytes and will be decrypted
 		with the already specified key. In PAD_NORMAL mode, if the
-		optional padding character is supplied, then the un-encypted
+		optional padding character is supplied, then the un-encrypted
 		data will have the padding characters removed from the end of
-		the string. This pad removal only occurs on the last 8 bytes of
+		the bytes. This pad removal only occurs on the last 8 bytes of
 		the data (last data block). In PAD_PKCS5 mode, the special
 		padding end markers will be removed from the data after
 		decrypting, no pad character is required for PAD_PKCS5.
 		"""
 		ENCRYPT = des.ENCRYPT
 		DECRYPT = des.DECRYPT
+		data = self._guardAgainstUnicode(data)
+		if pad is not None:
+			pad = self._guardAgainstUnicode(pad)
 		if self.getMode() == CBC:
 			self.__key1.setIV(self.getIV())
 			self.__key2.setIV(self.getIV())
@@ -782,7 +841,10 @@ class triple_des(_baseDes):
 				self.__key3.setIV(iv)
 				result.append(block)
 				i += 8
-			data = ''.join(result)
+			if _pythonMajorVersion < 3:
+				data = ''.join(result)
+			else:
+				data = bytes.fromhex('').join(result)
 		else:
 			data = self.__key3.crypt(data, DECRYPT)
 			data = self.__key2.crypt(data, ENCRYPT)
