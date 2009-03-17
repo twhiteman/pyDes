@@ -1,3 +1,7 @@
+** 16th March 2009 **
+ Release: 2.0.0
+ Updated to work with Python3.
+
 ** 14th November 2008 **
  Release: 1.3.1
  Code:  Patch by Shaya: fix PAD_PKCS5 padding modes when using triple des CBC.
