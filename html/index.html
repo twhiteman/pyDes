@@ -20,7 +20,7 @@
               				</td>
               				<td>
 <table>
-    <tr><td><b>Author:</b></td><td><a href="mailto:twhiteman@users.sourceforge.net">Todd Whiteman</a></td></tr>
+        <tr><td><b>Author:</b></td><td><a href="mailto:twhiteman@users.sourceforge.net">Todd Whiteman</a></td></tr>
 	<tr><td><b>Issue Date:</b></td><td>16th March, 2009</td></tr>
 	<tr><td><b>Version:</b></td><td>2.0.0</td></tr>
 	<tr><td><b>Compatibility:</b></td><td>Requires Python 2.2 or higher, an older Python 1.5.2 compatible module can be found in the <a href="http://pydes.cvs.sourceforge.net/pydes/pyDes/">CVS source</a>.<br/></td></tr>
@@ -138,11 +138,12 @@ Example
 -------
 from pyDes import *
 
-data = "Please encrypt my data"
-k = des("DESCRYPT", CBC, "\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
 # For Python3, you'll need to use bytes, i.e.:
 #   data = b"Please encrypt my data"
 #   k = des(b"DESCRYPT", CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
+
+data = "Please encrypt my data"
+k = des("DESCRYPT", CBC, "\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
 d = k.encrypt(data)
 print "Encrypted: %r" % d
 print "Decrypted: %r" % k.decrypt(d)
