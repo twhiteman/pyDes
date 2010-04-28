@@ -1,10 +1,10 @@
 Metadata-Version: 1.1
 Name: pyDes
-Version: 2.0.0
+Version: 2.0.1
 Author: Todd Whiteman
 Author-email: twhitema at gmail com
 Home-page: http://twhiteman.netfirms.com/des.html
-Download-url: http://twhiteman.netfirms.com/pyDES/pyDes-2.0.0.zip
+Download-url: http://twhiteman.netfirms.com/pyDES/pyDes-2.0.1.zip
 Summary: Pure python implementation of DES and TRIPLE DES encryption algorithm
 License: Public Domain
 Description: This algorithm is a pure python implementation of the DES and Triple DES

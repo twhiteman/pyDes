@@ -1,3 +1,7 @@
+** 28th April 2010 **
+ Release: 2.0.1
+ Fix triple des error when creating a CBC instance with no IV.
+
 ** 16th March 2009 **
  Release: 2.0.0
  Updated to work with Python3.

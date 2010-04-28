@@ -720,7 +720,7 @@ class triple_des(_baseDes):
 		if self.getMode() == CBC:
 			if not self.getIV():
 				# Use the first 8 bytes of the key
-				self.setIV(key[:self.block_size])
+				self._iv = key[:self.block_size]
 			if len(self.getIV()) != self.block_size:
 				raise ValueError("Invalid IV, must be 8 bytes in length")
 		self.__key1 = des(key[:8], self._mode, self._iv,

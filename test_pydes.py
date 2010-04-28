@@ -238,6 +238,16 @@ def _fulltest_():
 	else:
 		print ("Test 16: Successful")
 
+	# Ensure no error occurs when creating an instance with no IV yet set,
+	# test supplied by "Yoav Aner".
+	k = triple_des("\0" * 24, mode=CBC, pad=None, padmode=PAD_PKCS5)
+	data = "String to Pad".encode('ascii')
+	d = k.encrypt(data)
+	if k.decrypt(d) != data:
+		print ("Test 17: Error: decrypt does not match. %r != %r" % (data, k.decrypt(d)))
+	else:
+		print ("Test 17: Successful")
+
 	print ("")
 	print ("Total time taken: %f" % (time() - t))
 
