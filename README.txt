@@ -3,8 +3,8 @@
 #############################################################################
 
 Author:   Todd Whiteman
-Date:     16th March, 2009
-Verion:   2.0.0
+Date:     28th April, 2010
+Verion:   2.0.1
 License:  Public Domain - free to do as you wish
 Homepage: http://twhiteman.netfirms.com/des.html
 
@@ -60,10 +60,11 @@ The first/third key will be bytes 1 to 8 and the second key bytes 9 to 16.
 # 			         Credits				    #
 #############################################################################
 Thanks go to:
- - David Broadwell:	Ideas, comments and suggestions
- - Mario Wolff:		Finding and debugging triple des CBC errors.
+ - David Broadwell:     Ideas, comments and suggestions
+ - Mario Wolff:         Finding and debugging triple des CBC errors.
  - Santiago Palladino:  Providing the PKCS5 padding technique.
  - Shaya:               Fixing triple des CBC errors with PAD_PKCS5.
+ - Yoav Aner:           For spotting a triple des CBC IV error.
 
 
 #############################################################################
