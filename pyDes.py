@@ -5,7 +5,7 @@
 # Author:   Todd Whiteman
 # Date:     16th March, 2009
 # Verion:   2.0.0
-# License:  Public Domain - free to do as you wish
+# License:  MIT
 # Homepage: http://twhiteman.netfirms.com/des.html
 #
 # This is a pure python implementation of the DES encryption algorithm.
