@@ -3,8 +3,8 @@
 #############################################################################
 
 # Author:   Todd Whiteman
-# Date:     16th March, 2009
-# Verion:   2.0.0
+# Date:     28th April, 2010
+# Version:  2.0.1
 # License:  MIT
 # Homepage: http://twhiteman.netfirms.com/des.html
 #
@@ -12,7 +12,7 @@
 # It's pure python to avoid portability issues, since most DES 
 # implementations are programmed in C (for performance reasons).
 #
-# Triple DES class is also implemented, utilising the DES base. Triple DES
+# Triple DES class is also implemented, utilizing the DES base. Triple DES
 # is either DES-EDE3 with a 24 byte key, or DES-EDE2 with a 16 byte key.
 #
 # See the README.txt that should come with this python module for the
@@ -38,9 +38,9 @@ mode    -> Optional argument for encryption type, can be either
 IV      -> Optional Initial Value bytes, must be supplied if using CBC mode.
 	   Length must be 8 bytes.
 pad     -> Optional argument, set the pad character (PAD_NORMAL) to use during
-	   all encrypt/decrpt operations done with this instance.
+	   all encrypt/decrypt operations done with this instance.
 padmode -> Optional argument, set the padding mode (PAD_NORMAL or PAD_PKCS5)
-	   to use during all encrypt/decrpt operations done with this instance.
+	   to use during all encrypt/decrypt operations done with this instance.
 
 I recommend to use PAD_PKCS5 padding, as then you never need to worry about any
 padding issues, as the padding can be removed unambiguously upon decrypting
@@ -257,9 +257,9 @@ class des(_baseDes):
 	IV   -> Optional Initial Value bytes, must be supplied if using CBC mode.
 		Must be 8 bytes in length.
 	pad  -> Optional argument, set the pad character (PAD_NORMAL) to use
-		during all encrypt/decrpt operations done with this instance.
+		during all encrypt/decrypt operations done with this instance.
 	padmode -> Optional argument, set the padding mode (PAD_NORMAL or
-		PAD_PKCS5) to use during all encrypt/decrpt operations done
+		PAD_PKCS5) to use during all encrypt/decrypt operations done
 		with this instance.
 	"""
 
@@ -700,9 +700,9 @@ class triple_des(_baseDes):
 	IV   -> Optional Initial Value bytes, must be supplied if using CBC mode.
 		Must be 8 bytes in length.
 	pad  -> Optional argument, set the pad character (PAD_NORMAL) to use
-		during all encrypt/decrpt operations done with this instance.
+		during all encrypt/decrypt operations done with this instance.
 	padmode -> Optional argument, set the padding mode (PAD_NORMAL or
-		PAD_PKCS5) to use during all encrypt/decrpt operations done
+		PAD_PKCS5) to use during all encrypt/decrypt operations done
 		with this instance.
 	"""
 	def __init__(self, key, mode=ECB, IV=None, pad=None, padmode=PAD_NORMAL):
