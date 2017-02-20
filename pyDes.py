@@ -661,7 +661,7 @@ class des(_baseDes):
 	def decrypt(self, data, pad=None, padmode=None):
 		"""decrypt(data, [pad], [padmode]) -> bytes
 
-		data : Bytes to be encrypted
+		data : Bytes to be decrypted
 		pad  : Optional argument for decryption padding. Must only be one byte
 		padmode : Optional argument for overriding the padding mode.
 
