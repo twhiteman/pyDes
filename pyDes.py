@@ -6,7 +6,7 @@
 # Date:     28th April, 2010
 # Version:  2.0.1
 # License:  MIT
-# Homepage: http://whitemans.ca/des.html
+# Homepage: https://github.com/twhiteman/pyDes
 #
 # This is a pure python implementation of the DES encryption algorithm.
 # It's pure python to avoid portability issues, since most DES 
