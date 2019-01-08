@@ -8,7 +8,7 @@ setup(name="pyDes",
       author="Todd Whiteman",
       author_email="twhitema@gmail.com",
       license='MIT',
-      url="http://twhiteman.netfirms.com/des.html",
+      url="http://whitemans.ca/des.html",
       classifiers=[
         'Development Status :: 6 - Mature'
         'License :: OSI Approved :: MIT License',
